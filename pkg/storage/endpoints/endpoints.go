@@ -5,42 +5,54 @@ import (
 	"os"
 
 	"github.com/erizzardi/storage/pkg/storage"
+	"github.com/erizzardi/storage/util"
 	"github.com/go-kit/kit/endpoint"
 	"github.com/go-kit/log"
 )
 
 type Set struct {
+	HealtzEndpoint    endpoint.Endpoint
 	WriteFileEndpoint endpoint.Endpoint
 	GetFileEndpoint   endpoint.Endpoint
 }
 
-func NewEndpointSet(svc storage.Service) Set {
+//----------------------------------------
+// No logging here!! Need to investigate!!
+//----------------------------------------
+func NewEndpointSet(svc storage.Service, config *util.Config) Set {
 	return Set{
-		WriteFileEndpoint: MakeWriteFileEndpoint(svc),
-		GetFileEndpoint:   MakeGetFileEndpoint(svc),
+		HealtzEndpoint:    MakeHealtzEndpoint(),
+		WriteFileEndpoint: MakeWriteFileEndpoint(svc, config.StorageFolder),
+		GetFileEndpoint:   MakeGetFileEndpoint(svc, config.StorageFolder),
 	}
 }
 
-func MakeWriteFileEndpoint(svc storage.Service) endpoint.Endpoint {
+func MakeHealtzEndpoint() endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		return HealtzResponse{Message: "Alive!", Code: 200}, nil
+	}
+}
+
+func MakeWriteFileEndpoint(svc storage.Service, storageFolder string) endpoint.Endpoint {
+	//possibly cluster all config variables in one struct and pass that to the WriteFile method
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(WriteFileRequest)
-		if req.Err != nil {
-			return WriteFileResponse{500, "Internal server error"}, req.Err
-		}
-		err := svc.WriteFile(ctx, req.File, req.FileName)
+		err := svc.WriteFile(ctx, req.File, req.FileName, storageFolder)
 		if err != nil {
-			return WriteFileResponse{500, "Internal server error"}, err
+			er := err.(*util.ResponseError)
+			return WriteFileResponse{er.StatusCode, err.Error()}, nil
 		}
-		return WriteFileResponse{200, "Ok!"}, nil
+		return WriteFileResponse{201, "File created"}, nil
 	}
 }
 
-func MakeGetFileEndpoint(svc storage.Service) endpoint.Endpoint {
+func MakeGetFileEndpoint(svc storage.Service, storageFolder string) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(GetFileRequest)
-		file, err := svc.GetFile(ctx, req.FileName)
+		file, err := svc.GetFile(ctx, req.FileName, storageFolder)
 		if err != nil {
-			return GetFileResponse{500, nil}, err
+			er := err.(*util.ResponseError)
+			return GetFileResponse{er.StatusCode, nil}, err
 		}
 		return GetFileResponse{200, file}, nil
 	}

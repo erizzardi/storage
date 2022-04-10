@@ -18,8 +18,9 @@ import (
 
 // defaults
 const (
-	defaultHTTPPort = "8081"
-	defaultLogLevel = "INFO"
+	defaultHTTPPort      = "8081"
+	defaultLogLevel      = "INFO"
+	defaultStorageFolder = "./file-storage" // absolute path
 )
 
 // global variables, read from environment
@@ -27,6 +28,7 @@ var (
 	httpPort          = util.EnvString("STORAGE_HTTP_PORT", defaultHTTPPort)
 	serviceLogLevel   = util.EnvString("STORAGE_SERVICE_LOG_LEVEL", defaultLogLevel)
 	transportLogLevel = util.EnvString("STORAGE_TRANSPORT_LOG_LEVEL", defaultLogLevel)
+	storageFolder     = util.EnvString("STORAGE_FOLDER", defaultStorageFolder)
 )
 
 // Loggers for application and transport layer
@@ -37,18 +39,27 @@ var (
 )
 
 func main() {
+	//--------------
+	// Set up config
+	//--------------
+	var config = util.SetConfig(storageFolder)
+	// Listening HTTP address
 	var httpAddr = net.JoinHostPort("localhost", httpPort)
 
+	//-----------------------------------
+	// Logging - achieved via middlewares
+	//-----------------------------------
 	serviceLogger.Info("Service started. Listening from port " + httpPort)
+	serviceLogger.Debugf("Config variables: %+v\n", config)
 
-	var service = storage.NewService()
-	service = storage.ServiceLoggingMiddleware{Logger: serviceLogger, Next: service}
+	// var service = storage.ServiceLoggingMiddleware{Logger: serviceLogger, Next: storage.NewService()}
+	var service = storage.NewService(serviceLogger)
+	var endpointSet = endpoints.NewEndpointSet(service, config)
+	var httpHandler = storage.TransportLoggingMiddleware{Logger: transportLogger, Next: transport.NewHTTPHandler(endpointSet)}
 
-	var endpointSet = endpoints.NewEndpointSet(service)
-
-	var httpHandler = transport.NewHTTPHandler(endpointSet)
-	httpHandler = storage.TransportLoggingMiddleware{Logger: transportLogger, Next: httpHandler}
-
+	//-----------------------------
+	// Run HTTP listener and server
+	//-----------------------------
 	var g group.Group
 	{
 		httpListener, err := net.Listen("tcp", httpAddr)

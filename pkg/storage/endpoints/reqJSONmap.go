@@ -2,10 +2,14 @@ package endpoints
 
 import "io"
 
+type HealtzResponse struct {
+	Message string `json:"message"`
+	Code    int    `json:"code"`
+}
+
 type WriteFileRequest struct {
 	FileName string
 	File     io.Reader
-	Err      error
 }
 
 type WriteFileResponse struct {

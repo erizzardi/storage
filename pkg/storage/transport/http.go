@@ -15,10 +15,16 @@ import (
 func NewHTTPHandler(ep endpoints.Set) http.Handler {
 	r := mux.NewRouter()
 
+	r.Methods("GET").Path("/healtz").Handler(httptransport.NewServer(
+		ep.HealtzEndpoint,
+		decodeHTTPHealtzRequest,
+		encodeResponse,
+	))
+
 	r.Methods("POST").Path("/file").Handler(httptransport.NewServer(
 		ep.WriteFileEndpoint,
 		decodeHTTPWriteFileRequest,
-		encodeResponse,
+		encodeWriteFileResponse,
 	))
 
 	r.Methods("GET").Path("/file/{id}").Handler(httptransport.NewServer(
@@ -28,6 +34,10 @@ func NewHTTPHandler(ep endpoints.Set) http.Handler {
 	))
 
 	return r
+}
+
+func decodeHTTPHealtzRequest(ctx context.Context, r *http.Request) (interface{}, error) {
+	return nil, nil
 }
 
 func decodeHTTPWriteFileRequest(ctx context.Context, r *http.Request) (interface{}, error) {
@@ -55,6 +65,12 @@ func decodeHTTPGetFileRequest(ctx context.Context, r *http.Request) (interface{}
 }
 
 func encodeResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
+	return json.NewEncoder(w).Encode(response)
+}
+
+func encodeWriteFileResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
+	res := response.(endpoints.WriteFileResponse)
+	w.WriteHeader(res.Code)
 	return json.NewEncoder(w).Encode(response)
 }
 
