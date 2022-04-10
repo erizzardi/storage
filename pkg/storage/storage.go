@@ -8,16 +8,20 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/erizzardi/storage/base"
 	"github.com/erizzardi/storage/util"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
 
 type storageService struct {
+	DB     base.Database
 	Logger *logrus.Logger
 }
 
-func NewService(logger *logrus.Logger) Service { return &storageService{Logger: logger} }
+func NewService(db base.Database, logger *logrus.Logger) Service {
+	return &storageService{DB: db, Logger: logger}
+}
 
 //----------------------------------------------
 // This is where the API methods are implemented
