@@ -7,8 +7,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-
-	"github.com/go-kit/log"
 )
 
 type storageService struct{}
@@ -38,11 +36,4 @@ func (*storageService) GetFile(ctx context.Context, fileName string) ([]byte, er
 		return nil, err
 	}
 	return file, nil
-}
-
-var logger log.Logger
-
-func init() {
-	logger = log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
-	logger = log.With(logger, "ts", log.DefaultTimestampUTC)
 }

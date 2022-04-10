@@ -9,28 +9,30 @@ import (
 	"github.com/erizzardi/storage/pkg/storage/endpoints"
 	httptransport "github.com/go-kit/kit/transport/http"
 	"github.com/go-kit/log"
+	"github.com/gorilla/mux"
 )
 
 func NewHTTPHandler(ep endpoints.Set) http.Handler {
-	m := http.NewServeMux()
+	r := mux.NewRouter()
 
-	m.Handle("/writefile", httptransport.NewServer(
+	r.Methods("POST").Path("/file").Handler(httptransport.NewServer(
 		ep.WriteFileEndpoint,
 		decodeHTTPWriteFileRequest,
 		encodeResponse,
 	))
 
-	m.Handle("/getfile", httptransport.NewServer(
+	r.Methods("GET").Path("/file/{id}").Handler(httptransport.NewServer(
 		ep.GetFileEndpoint,
 		decodeHTTPGetFileRequest,
 		encodeGetFileResponse,
 	))
 
-	return m
+	return r
 }
 
 func decodeHTTPWriteFileRequest(ctx context.Context, r *http.Request) (interface{}, error) {
 	defer r.Body.Close()
+
 	file, _, err := r.FormFile("file")
 	if err != nil && err != http.ErrMissingFile {
 		return nil, err
@@ -43,7 +45,10 @@ func decodeHTTPWriteFileRequest(ctx context.Context, r *http.Request) (interface
 }
 
 func decodeHTTPGetFileRequest(ctx context.Context, r *http.Request) (interface{}, error) {
-	fileName := r.FormValue("file-name")
+	vars := mux.Vars(r)
+
+	fileName := vars["id"]
+
 	return endpoints.GetFileRequest{
 		FileName: fileName,
 	}, nil
@@ -57,7 +62,7 @@ func encodeGetFileResponse(ctx context.Context, w http.ResponseWriter, response 
 	res := response.(endpoints.GetFileResponse)
 
 	w.Write(res.File)
-	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Header().Set("Content-Type", "application/json")
 
 	return json.NewEncoder(w).Encode(response)
 }

@@ -24,6 +24,9 @@ func NewEndpointSet(svc storage.Service) Set {
 func MakeWriteFileEndpoint(svc storage.Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(WriteFileRequest)
+		if req.Err != nil {
+			return WriteFileResponse{500, "Internal server error"}, req.Err
+		}
 		err := svc.WriteFile(ctx, req.File, req.FileName)
 		if err != nil {
 			return WriteFileResponse{500, "Internal server error"}, err

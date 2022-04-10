@@ -12,39 +12,50 @@ import (
 	"github.com/erizzardi/storage/pkg/storage/endpoints"
 	"github.com/erizzardi/storage/pkg/storage/transport"
 	"github.com/erizzardi/storage/util"
-	"github.com/go-kit/log"
 	"github.com/oklog/oklog/pkg/group"
+	"github.com/sirupsen/logrus"
 )
 
+// defaults
 const (
 	defaultHTTPPort = "8081"
+	defaultLogLevel = "INFO"
+)
+
+// global variables, read from environment
+var (
+	httpPort          = util.EnvString("STORAGE_HTTP_PORT", defaultHTTPPort)
+	serviceLogLevel   = util.EnvString("STORAGE_SERVICE_LOG_LEVEL", defaultLogLevel)
+	transportLogLevel = util.EnvString("STORAGE_TRANSPORT_LOG_LEVEL", defaultLogLevel)
+)
+
+// Loggers for application and transport layer
+// Logging settings can be set for each layer individually
+var (
+	serviceLogger   = logrus.New()
+	transportLogger = logrus.New()
 )
 
 func main() {
-	var httpAddr = net.JoinHostPort("localhost", util.EnvString("STORAGE_HTTP_PORT", defaultHTTPPort))
+	var httpAddr = net.JoinHostPort("localhost", httpPort)
 
-	var logger log.Logger
-	logger = log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
-	logger = log.With(logger, "ts", log.DefaultTimestampUTC)
+	serviceLogger.Info("Service started. Listening from port " + httpPort)
 
-	var (
-		service     = storage.NewService()
-		endpointSet = endpoints.NewEndpointSet(service)
-		httpHandler = transport.NewHTTPHandler(endpointSet)
-	)
+	var service = storage.NewService()
+	service = storage.ServiceLoggingMiddleware{Logger: serviceLogger, Next: service}
 
-	fmt.Printf("%+v\n", endpointSet.GetFileEndpoint)
+	var endpointSet = endpoints.NewEndpointSet(service)
+
+	var httpHandler = transport.NewHTTPHandler(endpointSet)
+	httpHandler = storage.TransportLoggingMiddleware{Logger: transportLogger, Next: httpHandler}
 
 	var g group.Group
 	{
-		// The HTTP listener mounts the Go kit HTTP handler we created.
 		httpListener, err := net.Listen("tcp", httpAddr)
 		if err != nil {
-			logger.Log("transport", "HTTP", "during", "Listen", "err", err)
 			os.Exit(1)
 		}
 		g.Add(func() error {
-			logger.Log("transport", "HTTP", "addr", httpAddr)
 			return http.Serve(httpListener, httpHandler)
 		}, func(error) {
 			httpListener.Close()
@@ -66,6 +77,40 @@ func main() {
 			close(cancelInterrupt)
 		})
 	}
+	serviceLogger.Info("Exit: ", g.Run())
+}
 
-	logger.Log("exit", g.Run())
+// init logrus
+func init() {
+	serviceLogger.SetFormatter(&logrus.JSONFormatter{})
+	transportLogger.SetFormatter(&logrus.JSONFormatter{})
+
+	// loglevel for service logger
+	switch serviceLogLevel {
+	case "DEBUG":
+		serviceLogger.SetLevel(logrus.DebugLevel)
+	case "INFO":
+		serviceLogger.SetLevel(logrus.InfoLevel)
+	case "WARN":
+		serviceLogger.SetLevel(logrus.WarnLevel)
+	case "ERROR":
+		serviceLogger.SetLevel(logrus.ErrorLevel)
+	case "FATAL":
+		serviceLogger.SetLevel(logrus.FatalLevel)
+	}
+
+	// loglevel for transport logger
+	switch transportLogLevel {
+	case "DEBUG":
+		transportLogger.SetLevel(logrus.DebugLevel)
+	case "INFO":
+		transportLogger.SetLevel(logrus.InfoLevel)
+	case "WARN":
+		transportLogger.SetLevel(logrus.WarnLevel)
+	case "ERROR":
+		transportLogger.SetLevel(logrus.ErrorLevel)
+	case "FATAL":
+		transportLogger.SetLevel(logrus.FatalLevel)
+	}
+
 }

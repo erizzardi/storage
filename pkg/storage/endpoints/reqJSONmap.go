@@ -5,6 +5,7 @@ import "io"
 type WriteFileRequest struct {
 	FileName string
 	File     io.Reader
+	Err      error
 }
 
 type WriteFileResponse struct {
