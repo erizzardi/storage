@@ -18,7 +18,7 @@ func NewHTTPHandler(ep endpoints.Set) http.Handler {
 	r.Methods("GET").Path("/healtz").Handler(httptransport.NewServer(
 		ep.HealtzEndpoint,
 		decodeHTTPHealtzRequest,
-		encodeResponse,
+		encodeHealthResponse,
 	))
 
 	r.Methods("POST").Path("/file").Handler(httptransport.NewServer(
@@ -31,6 +31,12 @@ func NewHTTPHandler(ep endpoints.Set) http.Handler {
 		ep.GetFileEndpoint,
 		decodeHTTPGetFileRequest,
 		encodeGetFileResponse,
+	))
+
+	r.Methods("DELETE").Path("/file/{id}").Handler(httptransport.NewServer(
+		ep.DeleteFileEndpoint,
+		decodeHTTPDeleteFileRequest,
+		encodeDeleteFileResponse,
 	))
 
 	return r
@@ -64,7 +70,17 @@ func decodeHTTPGetFileRequest(ctx context.Context, r *http.Request) (interface{}
 	}, nil
 }
 
-func encodeResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
+func decodeHTTPDeleteFileRequest(ctx context.Context, r *http.Request) (interface{}, error) {
+	vars := mux.Vars(r)
+
+	fileName := vars["id"]
+
+	return endpoints.DeleteFileRequest{
+		FileName: fileName,
+	}, nil
+}
+
+func encodeHealthResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
 	return json.NewEncoder(w).Encode(response)
 }
 
@@ -80,6 +96,13 @@ func encodeGetFileResponse(ctx context.Context, w http.ResponseWriter, response 
 	w.Write(res.File)
 	w.Header().Set("Content-Type", "application/json")
 
+	return json.NewEncoder(w).Encode(response)
+}
+
+func encodeDeleteFileResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
+	res := response.(endpoints.DeleteFileResponse)
+
+	w.WriteHeader(res.Code)
 	return json.NewEncoder(w).Encode(response)
 }
 

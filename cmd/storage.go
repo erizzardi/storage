@@ -50,7 +50,7 @@ func main() {
 	// Logging - achieved via middlewares
 	//-----------------------------------
 	serviceLogger.Info("Service started. Listening from port " + httpPort)
-	serviceLogger.Debugf("Config variables: %+v\n", config)
+	serviceLogger.Debugf("Config variables: %+v\n", config) // TODO
 
 	// var service = storage.ServiceLoggingMiddleware{Logger: serviceLogger, Next: storage.NewService()}
 	var service = storage.NewService(serviceLogger)

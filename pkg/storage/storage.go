@@ -25,10 +25,8 @@ func (ss *storageService) WriteFile(ctx context.Context, file io.Reader, fileNam
 	ss.Logger.Debug("Method WriteFile invoked.")
 	fileName = filepath.Join(storageFolder, fileName)
 
-	var err error
-
 	// check if file exists
-	if _, err = os.Stat(fileName); errors.Is(err, os.ErrNotExist) {
+	if _, err := os.Stat(fileName); errors.Is(err, os.ErrNotExist) {
 		ss.Logger.Debug("Creating file " + fileName)
 		newFile, err := os.Create(fileName)
 		if err != nil {
@@ -40,8 +38,7 @@ func (ss *storageService) WriteFile(ctx context.Context, file io.Reader, fileNam
 		}
 		defer newFile.Close()
 
-		_, err = io.Copy(newFile, file)
-		if err != nil {
+		if _, err := io.Copy(newFile, file); err != nil {
 			ss.Logger.Error("Error: " + err.Error())
 			return &util.ResponseError{
 				StatusCode: 500,
@@ -61,6 +58,7 @@ func (ss *storageService) WriteFile(ctx context.Context, file io.Reader, fileNam
 }
 
 func (ss *storageService) GetFile(ctx context.Context, fileName string, storageFolder string) ([]byte, error) {
+	ss.Logger.Debug("Method GetFile invoked.")
 	fileName = filepath.Join(storageFolder, fileName)
 	if _, err := os.Stat(fileName); errors.Is(err, os.ErrNotExist) {
 		ss.Logger.Error("Error: " + err.Error())
@@ -77,6 +75,28 @@ func (ss *storageService) GetFile(ctx context.Context, fileName string, storageF
 			Err:        errors.New(err.Error()),
 		}
 	}
-	ss.Logger.Info("File " + fileName + " retrieved correctly")
+	ss.Logger.Info("File " + fileName + " retrieved successfully")
 	return file, nil
+}
+
+func (ss *storageService) DeleteFile(ctx context.Context, fileName string, storageFolder string) error {
+	ss.Logger.Debug("Method DeleteFile invoked.")
+	fileName = filepath.Join(storageFolder, fileName)
+
+	if _, err := os.Stat(fileName); errors.Is(err, os.ErrNotExist) {
+		ss.Logger.Error("Error: " + err.Error())
+		return &util.ResponseError{
+			StatusCode: 404,
+			Err:        errors.New(err.Error()),
+		}
+	}
+	if err := os.Remove(fileName); err != nil {
+		ss.Logger.Error("Error: " + err.Error())
+		return &util.ResponseError{
+			StatusCode: 500,
+			Err:        errors.New(err.Error()),
+		}
+	}
+	ss.Logger.Info("File " + fileName + "deleted successfully")
+	return nil
 }
