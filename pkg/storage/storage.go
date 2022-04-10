@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/erizzardi/storage/util"
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
 
@@ -21,9 +22,11 @@ func NewService(logger *logrus.Logger) Service { return &storageService{Logger: 
 //----------------------------------------------
 // This is where the API methods are implemented
 //----------------------------------------------
-func (ss *storageService) WriteFile(ctx context.Context, file io.Reader, fileName string, storageFolder string) error {
+func (ss *storageService) WriteFile(ctx context.Context, file io.Reader, storageFolder string) (string, error) {
 	ss.Logger.Debug("Method WriteFile invoked.")
-	fileName = filepath.Join(storageFolder, fileName)
+
+	uuid := uuid.New().String()
+	fileName := filepath.Join(storageFolder, uuid)
 
 	// check if file exists
 	if _, err := os.Stat(fileName); errors.Is(err, os.ErrNotExist) {
@@ -31,7 +34,7 @@ func (ss *storageService) WriteFile(ctx context.Context, file io.Reader, fileNam
 		newFile, err := os.Create(fileName)
 		if err != nil {
 			ss.Logger.Error("Error: " + err.Error())
-			return &util.ResponseError{
+			return "", &util.ResponseError{
 				StatusCode: 500,
 				Err:        errors.New(err.Error()),
 			}
@@ -40,26 +43,27 @@ func (ss *storageService) WriteFile(ctx context.Context, file io.Reader, fileNam
 
 		if _, err := io.Copy(newFile, file); err != nil {
 			ss.Logger.Error("Error: " + err.Error())
-			return &util.ResponseError{
+			return "", &util.ResponseError{
 				StatusCode: 500,
 				Err:        errors.New(err.Error()),
 			}
 		}
-		ss.Logger.Info("File " + fileName + " created successfully")
+		ss.Logger.Info("File " + uuid + " created successfully")
 
 	} else {
 		ss.Logger.Error("Error: file already exists")
-		return &util.ResponseError{
+		return "", &util.ResponseError{
 			StatusCode: 409,
 			Err:        errors.New("file already exists"),
 		}
 	}
-	return nil
+	return uuid, nil
 }
 
-func (ss *storageService) GetFile(ctx context.Context, fileName string, storageFolder string) ([]byte, error) {
+func (ss *storageService) GetFile(ctx context.Context, uuid string, storageFolder string) ([]byte, error) {
 	ss.Logger.Debug("Method GetFile invoked.")
-	fileName = filepath.Join(storageFolder, fileName)
+
+	fileName := filepath.Join(storageFolder, uuid)
 	if _, err := os.Stat(fileName); errors.Is(err, os.ErrNotExist) {
 		ss.Logger.Error("Error: " + err.Error())
 		return nil, &util.ResponseError{
@@ -75,13 +79,13 @@ func (ss *storageService) GetFile(ctx context.Context, fileName string, storageF
 			Err:        errors.New(err.Error()),
 		}
 	}
-	ss.Logger.Info("File " + fileName + " retrieved successfully")
+	ss.Logger.Info("File " + uuid + " retrieved successfully")
 	return file, nil
 }
 
-func (ss *storageService) DeleteFile(ctx context.Context, fileName string, storageFolder string) error {
+func (ss *storageService) DeleteFile(ctx context.Context, uuid string, storageFolder string) error {
 	ss.Logger.Debug("Method DeleteFile invoked.")
-	fileName = filepath.Join(storageFolder, fileName)
+	fileName := filepath.Join(storageFolder, uuid)
 
 	if _, err := os.Stat(fileName); errors.Is(err, os.ErrNotExist) {
 		ss.Logger.Error("Error: " + err.Error())

@@ -63,20 +63,20 @@ func decodeHTTPWriteFileRequest(ctx context.Context, r *http.Request) (interface
 func decodeHTTPGetFileRequest(ctx context.Context, r *http.Request) (interface{}, error) {
 	vars := mux.Vars(r)
 
-	fileName := vars["id"]
+	uuid := vars["id"]
 
 	return endpoints.GetFileRequest{
-		FileName: fileName,
+		Uuid: uuid,
 	}, nil
 }
 
 func decodeHTTPDeleteFileRequest(ctx context.Context, r *http.Request) (interface{}, error) {
 	vars := mux.Vars(r)
 
-	fileName := vars["id"]
+	uuid := vars["id"]
 
 	return endpoints.DeleteFileRequest{
-		FileName: fileName,
+		Uuid: uuid,
 	}, nil
 }
 

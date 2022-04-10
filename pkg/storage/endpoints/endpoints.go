@@ -37,19 +37,19 @@ func MakeWriteFileEndpoint(svc storage.Service, storageFolder string) endpoint.E
 	//possibly cluster all config variables in one struct and pass that to the WriteFile method
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(WriteFileRequest)
-		err := svc.WriteFile(ctx, req.File, req.FileName, storageFolder)
+		uuid, err := svc.WriteFile(ctx, req.File, storageFolder)
 		if err != nil {
 			er := err.(*util.ResponseError) // TODO - is it necessary? investigate a more elegant solution
-			return WriteFileResponse{er.StatusCode, err.Error()}, nil
+			return WriteFileResponse{er.StatusCode, err.Error(), ""}, nil
 		}
-		return WriteFileResponse{201, "File created"}, nil
+		return WriteFileResponse{201, "File created", uuid}, nil
 	}
 }
 
 func MakeGetFileEndpoint(svc storage.Service, storageFolder string) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(GetFileRequest)
-		file, err := svc.GetFile(ctx, req.FileName, storageFolder)
+		file, err := svc.GetFile(ctx, req.Uuid, storageFolder)
 		if err != nil {
 			er := err.(*util.ResponseError) // TODO - as above
 			return GetFileResponse{er.StatusCode, nil}, nil
@@ -61,7 +61,7 @@ func MakeGetFileEndpoint(svc storage.Service, storageFolder string) endpoint.End
 func MakeDeleteFileEndpoint(svc storage.Service, storageFolder string) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(DeleteFileRequest)
-		err := svc.DeleteFile(ctx, req.FileName, storageFolder)
+		err := svc.DeleteFile(ctx, req.Uuid, storageFolder)
 		if err != nil {
 			er := err.(*util.ResponseError) // TODO - as above
 			return DeleteFileResponse{er.StatusCode, err.Error()}, nil

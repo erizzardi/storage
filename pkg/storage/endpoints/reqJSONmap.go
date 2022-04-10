@@ -15,10 +15,11 @@ type WriteFileRequest struct {
 type WriteFileResponse struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
+	Uuid    string `json:"uuid"`
 }
 
 type GetFileRequest struct {
-	FileName string
+	Uuid string
 }
 
 type GetFileResponse struct {
@@ -27,7 +28,7 @@ type GetFileResponse struct {
 }
 
 type DeleteFileRequest struct {
-	FileName string
+	Uuid string
 }
 
 type DeleteFileResponse struct {

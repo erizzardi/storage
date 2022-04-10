@@ -8,5 +8,3 @@ type ResponseError struct {
 func (e *ResponseError) Error() string {
 	return e.Err.Error()
 }
-
-func NewResponseError() *ResponseError { return &ResponseError{} }
