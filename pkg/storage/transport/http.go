@@ -4,12 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"os"
 
 	"github.com/erizzardi/storage/pkg/storage/endpoints"
 	"github.com/erizzardi/storage/util"
 	httptransport "github.com/go-kit/kit/transport/http"
-	"github.com/go-kit/log"
 	"github.com/gorilla/mux"
 )
 
@@ -38,6 +36,12 @@ func NewHTTPHandler(ep endpoints.Set) http.Handler {
 		ep.DeleteFileEndpoint,
 		decodeHTTPDeleteFileRequest,
 		encodeDeleteFileResponse,
+	))
+
+	r.Methods("PUT").Path("/bucket").Handler(httptransport.NewServer(
+		ep.AddBucketEndpoint,
+		decodeHTTPAddBucketRequest,
+		encodeAddBucketResponse,
 	))
 
 	return r
@@ -83,13 +87,22 @@ func decodeHTTPDeleteFileRequest(ctx context.Context, r *http.Request) (interfac
 	}, nil
 }
 
+func decodeHTTPAddBucketRequest(ctx context.Context, r *http.Request) (interface{}, error) {
+	req := &endpoints.AddBucketRequest{}
+	err := json.NewDecoder(r.Body).Decode(req)
+
+	return req, err
+}
+
 func encodeHealthResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
+	w.Header().Add("Content-Type", "application/json")
 	return json.NewEncoder(w).Encode(response)
 }
 
 func encodeWriteFileResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
 	res := response.(endpoints.WriteFileResponse)
 	w.WriteHeader(res.Code)
+	w.Header().Add("Content-Type", "application/json")
 	return json.NewEncoder(w).Encode(response)
 }
 
@@ -97,21 +110,21 @@ func encodeGetFileResponse(ctx context.Context, w http.ResponseWriter, response 
 	res := response.(endpoints.GetFileResponse)
 
 	w.Write(res.File)
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Add("Content-Type", "application/json")
 
 	return json.NewEncoder(w).Encode(response)
 }
 
 func encodeDeleteFileResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
 	res := response.(endpoints.DeleteFileResponse)
-
 	w.WriteHeader(res.Code)
+	w.Header().Add("Content-Type", "application/json")
 	return json.NewEncoder(w).Encode(response)
 }
 
-var logger log.Logger
-
-func init() {
-	logger = log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
-	logger = log.With(logger, "ts", log.DefaultTimestampUTC)
+func encodeAddBucketResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
+	res := response.(endpoints.AddBucketResponse)
+	w.WriteHeader(res.Code)
+	w.Header().Add("Content-Type", "application/json")
+	return json.NewEncoder(w).Encode(response)
 }

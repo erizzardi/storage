@@ -39,3 +39,14 @@ type DeleteFileResponse struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 }
+
+type AddBucketRequest struct {
+	Name       string `json:"name"`
+	Versioning bool   `json:"versioning"`
+	// TODO - LifecyclePolicy util.LifecyclePolicy
+}
+
+type AddBucketResponse struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+}

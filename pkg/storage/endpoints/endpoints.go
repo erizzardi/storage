@@ -13,6 +13,7 @@ type Set struct {
 	WriteFileEndpoint  endpoint.Endpoint
 	GetFileEndpoint    endpoint.Endpoint
 	DeleteFileEndpoint endpoint.Endpoint
+	AddBucketEndpoint  endpoint.Endpoint
 }
 
 //-----------------------------------------------
@@ -25,6 +26,7 @@ func NewEndpointSet(svc storage.Service, config *util.Config) Set {
 		WriteFileEndpoint:  MakeWriteFileEndpoint(svc, config.StorageFolder),
 		GetFileEndpoint:    MakeGetFileEndpoint(svc, config.StorageFolder),
 		DeleteFileEndpoint: MakeDeleteFileEndpoint(svc, config.StorageFolder),
+		AddBucketEndpoint:  MakeAddBucketEndpoint(svc, config.StorageFolder),
 	}
 }
 
@@ -68,5 +70,12 @@ func MakeDeleteFileEndpoint(svc storage.Service, storageFolder string) endpoint.
 			return DeleteFileResponse{er.StatusCode, err.Error()}, nil
 		}
 		return DeleteFileResponse{200, "File deleted"}, nil
+	}
+}
+
+func MakeAddBucketEndpoint(svc storage.Service, storageFolder string) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		// req := request.(AddBucketRequest)
+		return AddBucketResponse{200, "Bucket created"}, nil
 	}
 }
