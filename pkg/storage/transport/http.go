@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/erizzardi/storage/pkg/storage/endpoints"
+	"github.com/erizzardi/storage/util"
 	httptransport "github.com/go-kit/kit/transport/http"
 	"github.com/go-kit/log"
 	"github.com/gorilla/mux"
@@ -49,14 +50,16 @@ func decodeHTTPHealtzRequest(ctx context.Context, r *http.Request) (interface{},
 func decodeHTTPWriteFileRequest(ctx context.Context, r *http.Request) (interface{}, error) {
 	defer r.Body.Close()
 
-	file, _, err := r.FormFile("file")
+	file, multipartHeader, err := r.FormFile("file")
 	if err != nil && err != http.ErrMissingFile {
 		return nil, err
 	}
-	fileName := r.FormValue("file-name")
 	return endpoints.WriteFileRequest{
-		FileName: fileName,
-		File:     file,
+		File: file,
+		Metadata: util.Metadata{
+			Name: multipartHeader.Filename,
+			Size: multipartHeader.Size,
+		},
 	}, nil
 }
 

@@ -1,6 +1,10 @@
 package endpoints
 
-import "io"
+import (
+	"io"
+
+	"github.com/erizzardi/storage/util"
+)
 
 type HealtzResponse struct {
 	Code    int    `json:"code"`
@@ -8,8 +12,8 @@ type HealtzResponse struct {
 }
 
 type WriteFileRequest struct {
-	FileName string
 	File     io.Reader
+	Metadata util.Metadata
 }
 
 type WriteFileResponse struct {

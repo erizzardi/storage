@@ -17,6 +17,7 @@ type Set struct {
 
 //-----------------------------------------------
 // TODO - No logging here!! Need to investigate!!
+// 		  Probably I need another middleware
 //-----------------------------------------------
 func NewEndpointSet(svc storage.Service, config *util.Config) Set {
 	return Set{
@@ -37,7 +38,7 @@ func MakeWriteFileEndpoint(svc storage.Service, storageFolder string) endpoint.E
 	//possibly cluster all config variables in one struct and pass that to the WriteFile method
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(WriteFileRequest)
-		uuid, err := svc.WriteFile(ctx, req.File, storageFolder)
+		uuid, err := svc.WriteFile(ctx, req.File, req.Metadata, storageFolder)
 		if err != nil {
 			er := err.(*util.ResponseError) // TODO - is it necessary? investigate a more elegant solution
 			return WriteFileResponse{er.StatusCode, err.Error(), ""}, nil

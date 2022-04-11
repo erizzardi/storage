@@ -1,14 +1,12 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/erizzardi/storage/base"
 	"github.com/erizzardi/storage/pkg/storage"
@@ -22,35 +20,44 @@ import (
 )
 
 // defaults
+// TODO - change with better names!!
 const (
 	defaultHTTPPort      = "8081"
 	defaultLogLevel      = "INFO"
 	defaultStorageFolder = "./file-storage" // absolute path
+	defaultDBDriver      = "postgres"
 	defaultDBUsername    = "postgres"
 	defaultDBPassword    = "postgres"
 	defaultDBDatabase    = "storage-metadata"
-	defaultDBIP          = "0.0.0.0"
+	defaultDBIP          = "localhost"
 	defaultDBPort        = "5432"
+	defaultDBTable       = "meta"
 )
 
 // global variables, read from environment
 var (
 	httpPort          = util.EnvString("STORAGE_HTTP_PORT", defaultHTTPPort)
+	mainLogLevel      = util.EnvString("STORAGE_MAIN_LOG_LEVEL", defaultLogLevel)
 	serviceLogLevel   = util.EnvString("STORAGE_SERVICE_LOG_LEVEL", defaultLogLevel)
 	transportLogLevel = util.EnvString("STORAGE_TRANSPORT_LOG_LEVEL", defaultLogLevel)
+	databaseLogLevel  = util.EnvString("STORAGE_DB_LOG_LEVEL", defaultLogLevel)
 	storageFolder     = util.EnvString("STORAGE_FOLDER", defaultStorageFolder)
-	dbUsername        = util.EnvString("STORAGE_DB_USERNAME", defaultDBUsername)
+	dbDriver          = util.EnvString("STORAGE_DB_DRIVER", defaultDBDriver)
+	dbUser            = util.EnvString("STORAGE_DB_USER", defaultDBUsername)
 	dbPassword        = util.EnvString("STORAGE_DB_PASSWORD", defaultDBPassword)
-	dbDatabase        = util.EnvString("STORAGE_DB_DATABASE", defaultDBDatabase)
-	dbIP              = util.EnvString("STORAGE_DB_IP", defaultDBIP)
+	dbDatabase        = util.EnvString("STORAGE_DB_DB", defaultDBDatabase)
+	dbHost            = util.EnvString("STORAGE_DB_HOST", defaultDBIP)
 	dbPort            = util.EnvString("STORAGE_DB_PORT", defaultDBPort)
+	dbTable           = util.EnvString("STORAGE_DB_TABLE", defaultDBTable)
 )
 
-// Loggers for application and transport layer
-// Logging settings can be set for each layer individually
+// Loggers for every layer.
+// Logging settings can be set individually for each layer
 var (
+	mainLogger      = logrus.New()
 	serviceLogger   = logrus.New()
 	transportLogger = logrus.New()
+	databaseLogger  = logrus.New()
 )
 
 func main() {
@@ -61,39 +68,45 @@ func main() {
 	// Listening HTTP address
 	var httpAddr = net.JoinHostPort("localhost", httpPort)
 
-	//--------------
-	// DB connection
-	//--------------
-	serviceLogger.Debug("Connecting to database...")
-	connStr := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=disable", dbUsername, dbPassword, dbIP, dbPort, dbDatabase)
-	serviceLogger.Info(connStr)
-	db, err := sql.Open("postgres", connStr)
-	retry := 0
+	//---------------------------------
+	// DB connection and initialization
+	//---------------------------------
+	var db base.DB
+
+	connStr := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=disable", dbUser, dbPassword, dbHost, dbPort, dbDatabase)
+	mainLogger.Debug(connStr)
+
+	switch dbDriver {
+	case "postgres":
+		db = base.NewSqlDatabase(databaseLogger, dbTable)
+	// TODO - case "mysql":
+	// TODO - case "cassandra":
+	default:
+		mainLogger.Error("Unsupported DB type. Supported types: postgres")
+		os.Exit(1)
+	}
+	err := db.Connect(dbDriver, connStr)
 	if err != nil {
-		serviceLogger.Error("Cannot connect to database: " + err.Error() + ". Retrying")
-		time.Sleep(5 * time.Second)
-		retry++
-		if retry >= 5 {
-			serviceLogger.Error("Cannot connect to database. Abort.")
-			return
-		}
+		mainLogger.Error("Error: cannot connect to database: " + err.Error())
 	}
 	defer db.Close()
 
-	serviceLogger.Info("Connected to database")
-	serviceLogger.Info("Service started. Listening from port " + httpPort)
-
-	database := base.NewSqlDatabase(db)
+	err = db.Init()
+	if err != nil {
+		mainLogger.Error("Error: cannot connect to database: " + err.Error())
+	}
 
 	//----------------------------------
 	// Logging and server initialization
 	//----------------------------------
-	serviceLogger.Debugf("Config variables: %+v\n", config) // TODO
+	mainLogger.Debugf("Config variables: %+v\n", config) // TODO
 
 	// var service = storage.ServiceLoggingMiddleware{Logger: serviceLogger, Next: storage.NewService()}
-	var service = storage.NewService(database, serviceLogger)
+	var service = storage.NewService(db, serviceLogger)
 	var endpointSet = endpoints.NewEndpointSet(service, config)
 	var httpHandler = storage.TransportLoggingMiddleware{Logger: transportLogger, Next: transport.NewHTTPHandler(endpointSet)}
+
+	mainLogger.Info("Service initialization complete. Listening on port " + httpPort)
 
 	//-----------------------------
 	// Run HTTP listener and server
@@ -110,6 +123,11 @@ func main() {
 			httpListener.Close()
 		})
 	}
+	// {
+	/*
+		TODO - Implement object lifecycle
+	*/
+	// }
 	{
 		// This function just sits and waits for ctrl-C.
 		cancelInterrupt := make(chan struct{})
@@ -126,13 +144,41 @@ func main() {
 			close(cancelInterrupt)
 		})
 	}
-	serviceLogger.Info("Exit: ", g.Run())
+	mainLogger.Info("Exit: ", g.Run())
 }
 
 // init logrus
 func init() {
-	serviceLogger.SetFormatter(&logrus.JSONFormatter{})
-	transportLogger.SetFormatter(&logrus.JSONFormatter{})
+	// mainLogger.SetFormatter(&logrus.JSONFormatter{})
+	// serviceLogger.SetFormatter(&logrus.JSONFormatter{})
+	// transportLogger.SetFormatter(&logrus.JSONFormatter{})
+	// databaseLogger.SetFormatter(&logrus.JSONFormatter{})
+	mainLogger.WithFields(logrus.Fields{
+		"Layer": "main",
+	})
+	serviceLogger.WithFields(logrus.Fields{
+		"Layer": "service",
+	})
+	transportLogger.WithFields(logrus.Fields{
+		"Layer": "transport",
+	})
+	databaseLogger.WithFields(logrus.Fields{
+		"Layer": "database",
+	})
+
+	// loglevel for main logger
+	switch mainLogLevel {
+	case "DEBUG":
+		mainLogger.SetLevel(logrus.DebugLevel)
+	case "INFO":
+		mainLogger.SetLevel(logrus.InfoLevel)
+	case "WARN":
+		mainLogger.SetLevel(logrus.WarnLevel)
+	case "ERROR":
+		mainLogger.SetLevel(logrus.ErrorLevel)
+	case "FATAL":
+		serviceLogger.SetLevel(logrus.FatalLevel)
+	}
 
 	// loglevel for service logger
 	switch serviceLogLevel {
@@ -162,4 +208,17 @@ func init() {
 		transportLogger.SetLevel(logrus.FatalLevel)
 	}
 
+	// loglevel for database logger
+	switch databaseLogLevel {
+	case "DEBUG":
+		databaseLogger.SetLevel(logrus.DebugLevel)
+	case "INFO":
+		databaseLogger.SetLevel(logrus.InfoLevel)
+	case "WARN":
+		databaseLogger.SetLevel(logrus.WarnLevel)
+	case "ERROR":
+		databaseLogger.SetLevel(logrus.ErrorLevel)
+	case "FATAL":
+		databaseLogger.SetLevel(logrus.FatalLevel)
+	}
 }
