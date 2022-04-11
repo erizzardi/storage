@@ -14,6 +14,10 @@ type DB interface {
 	//----------------------------
 	InsertMetadata(row Row) error
 	//
+	// Queries the database for selected row. Throws an error if entry doesn't exist
+	//------------------------------------------------------------------------------
+	RetrieveMetadata(row Row) (Row, error)
+	//
 	// Wrapper for db.Close()
 	//-----------------------
 	Close() error

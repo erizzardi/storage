@@ -50,17 +50,6 @@ func (sqldb *SqlDB) Init() error {
 	}
 	sqldb.logger.Debug("Create Table query executed")
 
-	// sqldb.logger.Debug("Inserting test row in table")
-	// statementString = "INSERT INTO " + sqldb.table + " VALUES( '" + uuid.New().String() + "', 'name' );"
-	// sqldb.logger.Debug(statementString)
-	// if statement, err = sqldb.db.Prepare(statementString); err != nil {
-	// 	return err
-	// }
-	// if _, err = statement.Exec(); err != nil {
-	// 	return err
-	// }
-	// sqldb.logger.Debug("Insert query executed")
-
 	return nil
 }
 
@@ -84,6 +73,38 @@ func (sqldb *SqlDB) InsertMetadata(row Row) error {
 	sqldb.logger.Debugf("Created %s rows", rowCnt)
 
 	return nil
+}
+
+func (sqldb *SqlDB) RetrieveMetadata(row Row) (Row, error) {
+	var ret Row
+
+	statementString := "SELECT * FROM " + sqldb.table + " WHERE uuid = $1;"
+	sqldb.logger.Debug(statementString)
+	statement, err := sqldb.db.Prepare(statementString)
+	if err != nil {
+		return Row{}, err
+	}
+	sqldb.logger.Debug("Select query prepared")
+	rows, err := statement.Query(row.Uuid)
+	if err != nil {
+		return Row{}, err
+	}
+	sqldb.logger.Debug("Insert query executed")
+	for rows.Next() {
+		err := rows.Scan(&ret.Uuid, &ret.FileName)
+		if err != nil {
+			return Row{}, err
+		}
+		sqldb.logger.Debugf("Row read. Retrieved %+v\n", ret)
+	}
+	err = rows.Err()
+	if err != nil {
+		return Row{}, err
+	}
+	sqldb.logger.Debug("Row scanning ended")
+
+	return ret, nil
+
 }
 
 func (sqldb *SqlDB) Close() error {

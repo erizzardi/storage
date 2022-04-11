@@ -85,6 +85,23 @@ func (ss *storageService) WriteFile(ctx context.Context, file io.Reader, metadat
 func (ss *storageService) GetFile(ctx context.Context, uuid string, storageFolder string) ([]byte, error) {
 	ss.logger.Debug("Method GetFile invoked.")
 
+	// Check db for entry corresponding to file
+	row, err := ss.db.RetrieveMetadata(base.Row{Uuid: uuid, FileName: ""})
+	if err != nil {
+		ss.logger.Error("Error: " + err.Error())
+		return nil, &util.ResponseError{
+			StatusCode: 500,
+			Err:        errors.New(err.Error()),
+		}
+	}
+	if row == (base.Row{}) {
+		ss.logger.Error("Error: file not found")
+		return nil, &util.ResponseError{
+			StatusCode: 404,
+			Err:        errors.New("file not found"),
+		}
+	}
+
 	fileName := filepath.Join(storageFolder, uuid)
 	if _, err := os.Stat(fileName); errors.Is(err, os.ErrNotExist) {
 		ss.logger.Error("Error: " + err.Error())
