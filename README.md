@@ -6,8 +6,8 @@ Attempt at a kubernetes native object storage, with custom JSON API.
 1. the user and the databases need to be created in order for the service to work
 
 ## TODO
-1. improve logging with default fiels - to differentiate between layers
-2. UNIT TESTS
+1. UNIT TESTS
+2. API to set loglevel at runtime
 3. improve response writing - headers are fucked up
 4. use buffered read/writes, to cap memory usage
 5. improve container compatibility
