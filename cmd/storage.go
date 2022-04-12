@@ -54,10 +54,10 @@ var (
 // Loggers for every layer.
 // Logging settings can be set individually for each layer
 var (
-	mainLogger      = logrus.New()
-	serviceLogger   = logrus.New()
-	transportLogger = logrus.New()
-	databaseLogger  = logrus.New()
+	mainLogger      = util.NewLogger()
+	serviceLogger   = util.NewLogger()
+	transportLogger = util.NewLogger()
+	databaseLogger  = util.NewLogger()
 )
 
 func main() {
@@ -67,6 +67,12 @@ func main() {
 	var config = util.SetConfig(storageFolder)
 	// Listening HTTP address
 	var httpAddr = net.JoinHostPort("localhost", httpPort)
+
+	resp, err := http.Get("https://google.com")
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer resp.Body.Close()
 
 	//---------------------------------
 	// DB connection and initialization
@@ -85,11 +91,13 @@ func main() {
 		mainLogger.Error("Unsupported DB type. Supported types: postgres")
 		os.Exit(1)
 	}
-	err := db.Connect(dbDriver, connStr)
+	mainLogger.Info("Connecting to database")
+	err = db.Connect(dbDriver, connStr)
 	if err != nil {
 		mainLogger.Error("Error: cannot connect to database: " + err.Error())
 	}
-	defer db.Close()
+	mainLogger.Info("Database connected")
+	defer db.Close() // this fails
 
 	err = db.Init()
 	if err != nil {
@@ -144,81 +152,13 @@ func main() {
 			close(cancelInterrupt)
 		})
 	}
-	mainLogger.Info("Exit: ", g.Run())
+	mainLogger.Warn("Exit: ", g.Run())
 }
 
-// init logrus
+// init loggers
 func init() {
-	// mainLogger.SetFormatter(&logrus.JSONFormatter{})
-	// serviceLogger.SetFormatter(&logrus.JSONFormatter{})
-	// transportLogger.SetFormatter(&logrus.JSONFormatter{})
-	// databaseLogger.SetFormatter(&logrus.JSONFormatter{})
-	mainLogger.WithFields(logrus.Fields{
-		"Layer": "main",
-	})
-	serviceLogger.WithFields(logrus.Fields{
-		"Layer": "service",
-	})
-	transportLogger.WithFields(logrus.Fields{
-		"Layer": "transport",
-	})
-	databaseLogger.WithFields(logrus.Fields{
-		"Layer": "database",
-	})
-
-	// loglevel for main logger
-	switch mainLogLevel {
-	case "DEBUG":
-		mainLogger.SetLevel(logrus.DebugLevel)
-	case "INFO":
-		mainLogger.SetLevel(logrus.InfoLevel)
-	case "WARN":
-		mainLogger.SetLevel(logrus.WarnLevel)
-	case "ERROR":
-		mainLogger.SetLevel(logrus.ErrorLevel)
-	case "FATAL":
-		serviceLogger.SetLevel(logrus.FatalLevel)
-	}
-
-	// loglevel for service logger
-	switch serviceLogLevel {
-	case "DEBUG":
-		serviceLogger.SetLevel(logrus.DebugLevel)
-	case "INFO":
-		serviceLogger.SetLevel(logrus.InfoLevel)
-	case "WARN":
-		serviceLogger.SetLevel(logrus.WarnLevel)
-	case "ERROR":
-		serviceLogger.SetLevel(logrus.ErrorLevel)
-	case "FATAL":
-		serviceLogger.SetLevel(logrus.FatalLevel)
-	}
-
-	// loglevel for transport logger
-	switch transportLogLevel {
-	case "DEBUG":
-		transportLogger.SetLevel(logrus.DebugLevel)
-	case "INFO":
-		transportLogger.SetLevel(logrus.InfoLevel)
-	case "WARN":
-		transportLogger.SetLevel(logrus.WarnLevel)
-	case "ERROR":
-		transportLogger.SetLevel(logrus.ErrorLevel)
-	case "FATAL":
-		transportLogger.SetLevel(logrus.FatalLevel)
-	}
-
-	// loglevel for database logger
-	switch databaseLogLevel {
-	case "DEBUG":
-		databaseLogger.SetLevel(logrus.DebugLevel)
-	case "INFO":
-		databaseLogger.SetLevel(logrus.InfoLevel)
-	case "WARN":
-		databaseLogger.SetLevel(logrus.WarnLevel)
-	case "ERROR":
-		databaseLogger.SetLevel(logrus.ErrorLevel)
-	case "FATAL":
-		databaseLogger.SetLevel(logrus.FatalLevel)
-	}
+	util.InitLogger(mainLogger, mainLogLevel, logrus.Fields{"level": "main"})
+	util.InitLogger(serviceLogger, mainLogLevel, logrus.Fields{"level": "service"})
+	util.InitLogger(transportLogger, mainLogLevel, logrus.Fields{"level": "transport"})
+	util.InitLogger(databaseLogger, mainLogLevel, logrus.Fields{"level": "database"})
 }

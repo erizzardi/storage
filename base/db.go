@@ -1,5 +1,9 @@
 package base
 
+import "database/sql"
+
+// Interface for database connection and operations.
+// Implementation for sql database: sql.go
 type DB interface {
 	//
 	// Enstablishes connection to the database
@@ -9,6 +13,10 @@ type DB interface {
 	// Creates the table in the database
 	//----------------------------------
 	Init() error
+	//
+	// Prepares and executes 'statement' operation - relies on db.Exec()
+	//------------------------------------------------------------------
+	Exec(statement string) (sql.Result, error)
 	//
 	// Inserts row in the database
 	//----------------------------

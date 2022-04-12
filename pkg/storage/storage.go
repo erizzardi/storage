@@ -11,15 +11,14 @@ import (
 	"github.com/erizzardi/storage/base"
 	"github.com/erizzardi/storage/util"
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 )
 
 type storageService struct {
 	db     base.DB
-	logger *logrus.Logger
+	logger *util.Logger
 }
 
-func NewService(db base.DB, logger *logrus.Logger) Service {
+func NewService(db base.DB, logger *util.Logger) Service {
 	return &storageService{db: db, logger: logger}
 }
 

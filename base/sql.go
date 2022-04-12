@@ -3,17 +3,17 @@ package base
 import (
 	"database/sql"
 
+	"github.com/erizzardi/storage/util"
 	_ "github.com/lib/pq"
-	"github.com/sirupsen/logrus"
 )
 
 type SqlDB struct {
 	db     *sql.DB
-	logger *logrus.Logger
+	logger *util.Logger
 	table  string
 }
 
-func NewSqlDatabase(logger *logrus.Logger, table string) DB {
+func NewSqlDatabase(logger *util.Logger, table string) DB {
 	return &SqlDB{
 		db:     &sql.DB{},
 		logger: logger,
@@ -26,6 +26,7 @@ func (sqldb *SqlDB) Connect(driver string, dsn string) error {
 	if err != nil {
 		return err
 	}
+	sqldb.logger.Info(db)
 	err = db.Ping()
 	if err != nil {
 		return err
@@ -36,19 +37,34 @@ func (sqldb *SqlDB) Connect(driver string, dsn string) error {
 	return nil
 }
 
-func (sqldb *SqlDB) Init() error {
-	sqldb.logger.Debug("Creating table, if doesn't exist")
-	statementString := "CREATE TABLE IF NOT EXISTS " + sqldb.table + " ( uuid uuid PRIMARY KEY, fileName varchar(255) NOT NULL);"
+func (sqldb *SqlDB) Exec(statementString string) (sql.Result, error) {
 	sqldb.logger.Debug(statementString)
 	statement, err := sqldb.db.Prepare(statementString)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	_, err = statement.Exec()
+	res, err := statement.Exec()
 	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+func (sqldb *SqlDB) Init() error {
+	sqldb.logger.Debug("Creating 'meta' table, if doesn't exist")
+	statementString := "CREATE TABLE IF NOT EXISTS " + sqldb.table + " ( uuid uuid PRIMARY KEY, fileName varchar(255) NOT NULL, bucket varchar(255) NOT NULL);"
+	if _, err := sqldb.Exec(statementString); err != nil {
 		return err
 	}
-	sqldb.logger.Debug("Create Table query executed")
+	sqldb.logger.Debug("Create Table 'meta' query executed")
+
+	sqldb.logger.Debug("Creating 'bucket' table, if doesn't exist")
+	statementString = "CREATE TABLE IF NOT EXISTS " + sqldb.table + " ( name varchar(255) PRIMARY KEY, owner varchar(255) NOT NULL);"
+	if _, err := sqldb.Exec(statementString); err != nil {
+		return err
+	}
+
+	sqldb.logger.Debug("Create Table 'bucket' query executed")
 
 	return nil
 }
@@ -56,16 +72,12 @@ func (sqldb *SqlDB) Init() error {
 func (sqldb *SqlDB) InsertMetadata(row Row) error {
 	statementString := "INSERT INTO " + sqldb.table + " VALUES( $1, $2 );"
 	sqldb.logger.Debug(statementString)
-	statement, err := sqldb.db.Prepare(statementString)
+
+	res, err := sqldb.Exec(statementString)
 	if err != nil {
 		return err
 	}
-	sqldb.logger.Debug("Insert query prepared")
-	res, err := statement.Exec(row.Uuid, row.FileName)
-	if err != nil {
-		return err
-	}
-	sqldb.logger.Debug("Insert query executed")
+
 	rowCnt, err := res.RowsAffected()
 	if err != nil {
 		return err
