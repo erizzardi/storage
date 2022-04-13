@@ -1,0 +1,33 @@
+version: "3.7"
+services:
+  database:
+    image: postgres:alpine
+    restart: always
+    networks:
+      - default
+    environment:
+      POSTGRES_USER: storage
+      POSTGRES_PASSWORD: storage_pass
+      POSTGRES_DB: metadata
+    ports:
+      - "5432:5432"
+    volumes:
+      - data:/var/lib/postgresql/data:rw
+      # - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:rw
+  server:
+    # network_mode: host
+    networks:
+      - default
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      STORAGE_DB_USER: storage
+      STORAGE_DB_PASSWORD: password
+      STORAGE_DB_DB: metadata
+      STORAGE_DB_HOST: database
+      STORAGE_DB_PORT: 5432
+    ports:
+      - "8081:8081"
+volumes:
+  data:
