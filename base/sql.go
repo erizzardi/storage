@@ -26,7 +26,7 @@ func (sqldb *SqlDB) Connect(driver string, dsn string) error {
 	if err != nil {
 		return err
 	}
-	sqldb.logger.Info(db)
+	sqldb.logger.Debug("Pinging database...")
 	err = db.Ping()
 	if err != nil {
 		return err
@@ -37,13 +37,13 @@ func (sqldb *SqlDB) Connect(driver string, dsn string) error {
 	return nil
 }
 
-func (sqldb *SqlDB) Exec(statementString string) (sql.Result, error) {
+func (sqldb *SqlDB) Exec(statementString string, params ...any) (sql.Result, error) {
 	sqldb.logger.Debug(statementString)
 	statement, err := sqldb.db.Prepare(statementString)
 	if err != nil {
 		return nil, err
 	}
-	res, err := statement.Exec()
+	res, err := statement.Exec(params...)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +52,7 @@ func (sqldb *SqlDB) Exec(statementString string) (sql.Result, error) {
 
 func (sqldb *SqlDB) Init() error {
 	sqldb.logger.Debug("Creating 'meta' table, if doesn't exist")
-	statementString := "CREATE TABLE IF NOT EXISTS " + sqldb.table + " ( uuid uuid PRIMARY KEY, fileName varchar(255) NOT NULL, bucket varchar(255) NOT NULL);"
+	statementString := "CREATE TABLE IF NOT EXISTS " + sqldb.table + " ( uuid uuid PRIMARY KEY, fileName varchar(255) NOT NULL );"
 	if _, err := sqldb.Exec(statementString); err != nil {
 		return err
 	}
@@ -73,7 +73,7 @@ func (sqldb *SqlDB) InsertMetadata(row Row) error {
 	statementString := "INSERT INTO " + sqldb.table + " VALUES( $1, $2 );"
 	sqldb.logger.Debug(statementString)
 
-	res, err := sqldb.Exec(statementString)
+	res, err := sqldb.Exec(statementString, row.Uuid, row.FileName)
 	if err != nil {
 		return err
 	}
