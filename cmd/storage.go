@@ -68,11 +68,11 @@ func main() {
 	// Listening HTTP address
 	var httpAddr = net.JoinHostPort("localhost", httpPort)
 
-	resp, err := http.Get("https://google.com")
-	if err != nil {
-		fmt.Println(err)
-	}
-	defer resp.Body.Close()
+	// resp, err := http.Get("https://google.com")
+	// if err != nil {
+	// 	fmt.Println(err)
+	// }
+	// defer resp.Body.Close()
 
 	//---------------------------------
 	// DB connection and initialization
@@ -92,7 +92,7 @@ func main() {
 		os.Exit(1)
 	}
 	mainLogger.Info("Connecting to database")
-	err = db.Connect(dbDriver, connStr)
+	err := db.Connect(dbDriver, connStr)
 	if err != nil {
 		mainLogger.Error("Error: cannot connect to database: " + err.Error())
 	}
