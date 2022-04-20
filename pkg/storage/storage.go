@@ -13,13 +13,18 @@ import (
 	"github.com/google/uuid"
 )
 
+// storageService implements the storage.Service interface
 type storageService struct {
-	db     base.DB
+	// Pointer to a DB interface, that allows DB operations.
+	db base.DB
+	// Logger specific for the business logic layer
 	logger *util.Logger
+	// Map[layer]logger. To change logging level at run time
+	layerLoggersMap map[string]*util.Logger
 }
 
-func NewService(db base.DB, logger *util.Logger) Service {
-	return &storageService{db: db, logger: logger}
+func NewService(db base.DB, logger *util.Logger, layerLoggersMap map[string]*util.Logger) Service {
+	return &storageService{db: db, logger: logger, layerLoggersMap: layerLoggersMap}
 }
 
 //----------------------------------------------
@@ -140,5 +145,20 @@ func (ss *storageService) DeleteFile(ctx context.Context, uuid string, storageFo
 		}
 	}
 	ss.logger.Info("File " + fileName + "deleted successfully")
+	return nil
+}
+
+func (ss *storageService) SetLogLevel(ctx context.Context, layer string, level string) error {
+	ss.logger.Debug("Method SetLogLevel invoked")
+	logrusLevel, err := util.LogLevelMapping(level)
+	if err != nil {
+		return &util.ResponseError{
+			StatusCode: 400,
+			Err:        errors.New("Error: " + err.Error()),
+		}
+	}
+	if layer == "service" {
+		ss.logger.SetLevel(logrusLevel)
+	}
 	return nil
 }

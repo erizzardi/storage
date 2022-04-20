@@ -1,6 +1,7 @@
 package util
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/sirupsen/logrus"
@@ -96,4 +97,26 @@ func InitLogger(logger *Logger, level string, fields logrus.Fields) {
 	}
 
 	logger.SetDefaultFields(fields)
+}
+
+func LogLevelMapping(level string) (logrus.Level, error) {
+	var ret logrus.Level
+
+	fmt.Print(level)
+
+	switch level {
+	case "DEBUG":
+		ret = logrus.DebugLevel
+	case "INFO":
+		ret = logrus.InfoLevel
+	case "WARN":
+		ret = logrus.WarnLevel
+	case "ERROR":
+		ret = logrus.ErrorLevel
+	case "FATAL":
+		ret = logrus.FatalLevel
+	default:
+		return 0, fmt.Errorf("invalid log level %s", level)
+	}
+	return ret, nil
 }

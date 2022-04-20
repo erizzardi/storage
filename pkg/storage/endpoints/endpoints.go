@@ -14,6 +14,7 @@ type Set struct {
 	GetFileEndpoint    endpoint.Endpoint
 	DeleteFileEndpoint endpoint.Endpoint
 	AddBucketEndpoint  endpoint.Endpoint
+	LogLevelEndpoint   endpoint.Endpoint
 }
 
 //-----------------------------------------------
@@ -27,6 +28,7 @@ func NewEndpointSet(svc storage.Service, config *util.Config) Set {
 		GetFileEndpoint:    MakeGetFileEndpoint(svc, config.StorageFolder),
 		DeleteFileEndpoint: MakeDeleteFileEndpoint(svc, config.StorageFolder),
 		AddBucketEndpoint:  MakeAddBucketEndpoint(svc, config.StorageFolder),
+		LogLevelEndpoint:   MakeLogLevelEndpoint(svc, config.StorageFolder),
 	}
 }
 
@@ -55,9 +57,9 @@ func MakeGetFileEndpoint(svc storage.Service, storageFolder string) endpoint.End
 		file, err := svc.GetFile(ctx, req.Uuid, storageFolder)
 		if err != nil {
 			er := err.(*util.ResponseError) // TODO - as above
-			return GetFileResponse{er.StatusCode, nil}, nil
+			return GetFileResponse{er.StatusCode, err.Error(), nil}, nil
 		}
-		return GetFileResponse{200, file}, nil
+		return GetFileResponse{200, "File retrieved", file}, nil
 	}
 }
 
@@ -77,5 +79,17 @@ func MakeAddBucketEndpoint(svc storage.Service, storageFolder string) endpoint.E
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		// req := request.(AddBucketRequest)
 		return AddBucketResponse{200, "Bucket created"}, nil
+	}
+}
+
+func MakeLogLevelEndpoint(svc storage.Service, storageFolder string) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		req := request.(LogLevelRequest)
+		err := svc.SetLogLevel(ctx, req.Layer, req.Level)
+		if err != nil {
+			er := err.(*util.ResponseError)
+			return LogLevelResponse{er.StatusCode, err.Error()}, nil
+		}
+		return LogLevelResponse{200, "Logging level for layer " + req.Layer + " changed to " + req.Level}, nil
 	}
 }

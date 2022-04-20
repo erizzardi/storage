@@ -17,7 +17,7 @@ func NewHTTPHandler(ep endpoints.Set) http.Handler {
 	r.Methods("GET").Path("/healtz").Handler(httptransport.NewServer(
 		ep.HealtzEndpoint,
 		decodeHTTPHealtzRequest,
-		encodeHealthResponse,
+		encodeHealthzResponse,
 	))
 
 	r.Methods("POST").Path("/file").Handler(httptransport.NewServer(
@@ -44,9 +44,18 @@ func NewHTTPHandler(ep endpoints.Set) http.Handler {
 		encodeAddBucketResponse,
 	))
 
+	r.Methods("POST").Path("/config/loglevel").Handler(httptransport.NewServer(
+		ep.LogLevelEndpoint,
+		decodeHTTPLogLevelRequest,
+		encodeLogLevelResponse,
+	))
+
 	return r
 }
 
+//=================
+// Request Decoders
+//=================
 func decodeHTTPHealtzRequest(ctx context.Context, r *http.Request) (interface{}, error) {
 	return nil, nil
 }
@@ -91,10 +100,20 @@ func decodeHTTPAddBucketRequest(ctx context.Context, r *http.Request) (interface
 	req := &endpoints.AddBucketRequest{}
 	err := json.NewDecoder(r.Body).Decode(req)
 
-	return req, err
+	return *req, err
 }
 
-func encodeHealthResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
+func decodeHTTPLogLevelRequest(ctx context.Context, r *http.Request) (interface{}, error) {
+	req := &endpoints.LogLevelRequest{}
+	err := json.NewDecoder(r.Body).Decode(req)
+
+	return *req, err
+}
+
+//==================
+// Response Encoders
+//==================
+func encodeHealthzResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
 	w.Header().Add("Content-Type", "application/json")
 	return json.NewEncoder(w).Encode(response)
 }
@@ -124,6 +143,13 @@ func encodeDeleteFileResponse(ctx context.Context, w http.ResponseWriter, respon
 
 func encodeAddBucketResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
 	res := response.(endpoints.AddBucketResponse)
+	w.WriteHeader(res.Code)
+	w.Header().Add("Content-Type", "application/json")
+	return json.NewEncoder(w).Encode(response)
+}
+
+func encodeLogLevelResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
+	res := response.(endpoints.LogLevelResponse)
 	w.WriteHeader(res.Code)
 	w.Header().Add("Content-Type", "application/json")
 	return json.NewEncoder(w).Encode(response)

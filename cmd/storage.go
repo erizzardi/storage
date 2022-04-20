@@ -68,12 +68,6 @@ func main() {
 	// Listening HTTP address
 	var httpAddr = net.JoinHostPort("localhost", httpPort)
 
-	// resp, err := http.Get("https://google.com")
-	// if err != nil {
-	// 	fmt.Println(err)
-	// }
-	// defer resp.Body.Close()
-
 	//---------------------------------
 	// DB connection and initialization
 	//---------------------------------
@@ -94,10 +88,10 @@ func main() {
 	mainLogger.Info("Connecting to database")
 	err := db.Connect(dbDriver, connStr)
 	if err != nil {
-		mainLogger.Error("Error: cannot connect to database: " + err.Error())
+		mainLogger.Fatal("Error: cannot connect to database: " + err.Error())
 	}
 	mainLogger.Info("Database connected")
-	defer db.Close() // this fails
+	defer db.Close() // this fails if db connection is not established
 
 	err = db.Init()
 	if err != nil {
@@ -109,8 +103,7 @@ func main() {
 	//----------------------------------
 	mainLogger.Debugf("Config variables: %+v\n", config) // TODO
 
-	// var service = storage.ServiceLoggingMiddleware{Logger: serviceLogger, Next: storage.NewService()}
-	var service = storage.NewService(db, serviceLogger)
+	var service = storage.NewService(db, serviceLogger, map[string]*util.Logger{"transport": transportLogger, "database": databaseLogger})
 	var endpointSet = endpoints.NewEndpointSet(service, config)
 	var httpHandler = storage.TransportLoggingMiddleware{Logger: transportLogger, Next: transport.NewHTTPHandler(endpointSet)}
 
