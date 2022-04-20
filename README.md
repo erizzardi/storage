@@ -7,7 +7,7 @@ Attempt at a kubernetes native object storage, with custom JSON API.
 
 ## TODO
 1. UNIT TESTS
-2. API to set loglevel at runtime
+2. <del>API to set loglevel at runtime</del>
 3. improve response writing - headers are fucked up
 4. use buffered read/writes, to cap memory usage
 5. improve container compatibility
