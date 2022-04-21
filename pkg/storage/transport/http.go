@@ -14,31 +14,43 @@ import (
 func NewHTTPHandler(ep endpoints.Set) http.Handler {
 	r := mux.NewRouter()
 
+	r.NotFoundHandler = httptransport.NewServer(
+		ep.NotFoundEndpoint,
+		decodeHTTPNotFoundRequest,
+		encodeNotFoundResponse,
+	)
+
 	r.Methods("GET").Path("/healtz").Handler(httptransport.NewServer(
 		ep.HealtzEndpoint,
 		decodeHTTPHealtzRequest,
 		encodeHealthzResponse,
 	))
 
-	r.Methods("POST").Path("/file").Handler(httptransport.NewServer(
+	r.Methods("GET").Path("/files").Handler(httptransport.NewServer(
+		ep.ListFilesEndpoint,
+		decodeHTTPListFilesRequest,
+		encodeListFilesResponse,
+	))
+
+	r.Methods("POST").Path("/files").Handler(httptransport.NewServer(
 		ep.WriteFileEndpoint,
 		decodeHTTPWriteFileRequest,
 		encodeWriteFileResponse,
 	))
 
-	r.Methods("GET").Path("/file/{id}").Handler(httptransport.NewServer(
+	r.Methods("GET").Path("/files/{id}").Handler(httptransport.NewServer(
 		ep.GetFileEndpoint,
 		decodeHTTPGetFileRequest,
 		encodeGetFileResponse,
 	))
 
-	r.Methods("DELETE").Path("/file/{id}").Handler(httptransport.NewServer(
+	r.Methods("DELETE").Path("/files/{id}").Handler(httptransport.NewServer(
 		ep.DeleteFileEndpoint,
 		decodeHTTPDeleteFileRequest,
 		encodeDeleteFileResponse,
 	))
 
-	r.Methods("PUT").Path("/bucket").Handler(httptransport.NewServer(
+	r.Methods("PUT").Path("/buckets").Handler(httptransport.NewServer(
 		ep.AddBucketEndpoint,
 		decodeHTTPAddBucketRequest,
 		encodeAddBucketResponse,
@@ -58,6 +70,17 @@ func NewHTTPHandler(ep endpoints.Set) http.Handler {
 //=================
 func decodeHTTPHealtzRequest(ctx context.Context, r *http.Request) (interface{}, error) {
 	return nil, nil
+}
+
+func decodeHTTPNotFoundRequest(ctx context.Context, r *http.Request) (interface{}, error) {
+	return endpoints.NotFoundRequest{Endpoint: r.URL.String()}, nil
+}
+
+func decodeHTTPListFilesRequest(ctx context.Context, r *http.Request) (interface{}, error) {
+	req := &endpoints.ListFilesRequest{}
+	err := json.NewDecoder(r.Body).Decode(req)
+
+	return *req, err
 }
 
 func decodeHTTPWriteFileRequest(ctx context.Context, r *http.Request) (interface{}, error) {
@@ -114,14 +137,17 @@ func decodeHTTPLogLevelRequest(ctx context.Context, r *http.Request) (interface{
 // Response Encoders
 //==================
 func encodeHealthzResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
-	w.Header().Add("Content-Type", "application/json")
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+func encodeListFilesResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
 	return json.NewEncoder(w).Encode(response)
 }
 
 func encodeWriteFileResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
 	res := response.(endpoints.WriteFileResponse)
 	w.WriteHeader(res.Code)
-	w.Header().Add("Content-Type", "application/json")
 	return json.NewEncoder(w).Encode(response)
 }
 
@@ -129,28 +155,28 @@ func encodeGetFileResponse(ctx context.Context, w http.ResponseWriter, response 
 	res := response.(endpoints.GetFileResponse)
 
 	w.Write(res.File)
-	w.Header().Add("Content-Type", "application/json")
-
-	return json.NewEncoder(w).Encode(response)
+	w.Header().Set("Content-Type", "image/jpg")
+	return nil
 }
 
 func encodeDeleteFileResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
 	res := response.(endpoints.DeleteFileResponse)
 	w.WriteHeader(res.Code)
-	w.Header().Add("Content-Type", "application/json")
 	return json.NewEncoder(w).Encode(response)
 }
 
 func encodeAddBucketResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
 	res := response.(endpoints.AddBucketResponse)
 	w.WriteHeader(res.Code)
-	w.Header().Add("Content-Type", "application/json")
 	return json.NewEncoder(w).Encode(response)
 }
 
 func encodeLogLevelResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
 	res := response.(endpoints.LogLevelResponse)
 	w.WriteHeader(res.Code)
-	w.Header().Add("Content-Type", "application/json")
+	return json.NewEncoder(w).Encode(response)
+}
+
+func encodeNotFoundResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
 	return json.NewEncoder(w).Encode(response)
 }

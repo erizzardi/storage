@@ -8,7 +8,7 @@ import (
 )
 
 type Service interface {
-	//
+	ListFiles(ctx context.Context, limit uint, offset uint) ([]util.Row, error) //
 	//
 	// WriteFile writes a file to disk, saving the metadata into the database
 	WriteFile(ctx context.Context, file io.Reader, metadata util.Metadata, storageFolder string) (string, error)

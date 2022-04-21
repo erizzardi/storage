@@ -43,43 +43,43 @@ func (logger *Logger) SetDefaultFields(fields logrus.Fields) {
 }
 
 func (logger *Logger) Debug(args ...interface{}) {
-	logger.logger.WithFields(logger.fields).Debug(args)
+	logger.logger.WithFields(logger.fields).Debug(args...)
 }
 
 func (logger *Logger) Debugf(format string, args ...interface{}) {
-	logger.logger.WithFields(logger.fields).Debugf(format, args)
+	logger.logger.WithFields(logger.fields).Debugf(format, args...)
 }
 
 func (logger *Logger) Info(args ...interface{}) {
-	logger.logger.WithFields(logger.fields).Info(args)
+	logger.logger.WithFields(logger.fields).Info(args...)
 }
 
 func (logger *Logger) Infof(format string, args ...interface{}) {
-	logger.logger.WithFields(logger.fields).Infof(format, args)
+	logger.logger.WithFields(logger.fields).Infof(format, args...)
 }
 
 func (logger *Logger) Warn(args ...interface{}) {
-	logger.logger.WithFields(logger.fields).Warn(args)
+	logger.logger.WithFields(logger.fields).Warn(args...)
 }
 
 func (logger *Logger) Warnf(format string, args ...interface{}) {
-	logger.logger.WithFields(logger.fields).Warnf(format, args)
+	logger.logger.WithFields(logger.fields).Warnf(format, args...)
 }
 
 func (logger *Logger) Error(args ...interface{}) {
-	logger.logger.WithFields(logger.fields).Error(args)
+	logger.logger.WithFields(logger.fields).Error(args...)
 }
 
 func (logger *Logger) Errorf(format string, args ...interface{}) {
-	logger.logger.WithFields(logger.fields).Errorf(format, args)
+	logger.logger.WithFields(logger.fields).Errorf(format, args...)
 }
 
 func (logger *Logger) Fatal(args ...interface{}) {
-	logger.logger.WithFields(logger.fields).Fatal(args)
+	logger.logger.WithFields(logger.fields).Fatal(args...)
 }
 
 func (logger *Logger) Fatalf(format string, args ...interface{}) {
-	logger.logger.WithFields(logger.fields).Fatalf(format, args)
+	logger.logger.WithFields(logger.fields).Fatalf(format, args...)
 }
 
 func InitLogger(logger *Logger, level string, fields logrus.Fields) {
@@ -101,8 +101,6 @@ func InitLogger(logger *Logger, level string, fields logrus.Fields) {
 
 func LogLevelMapping(level string) (logrus.Level, error) {
 	var ret logrus.Level
-
-	fmt.Print(level)
 
 	switch level {
 	case "DEBUG":

@@ -30,6 +30,20 @@ func NewService(db base.DB, logger *util.Logger, layerLoggersMap map[string]*uti
 //----------------------------------------------
 // This is where the API methods are implemented
 //----------------------------------------------
+func (ss *storageService) ListFiles(ctx context.Context, limit uint, offset uint) ([]util.Row, error) {
+	ss.logger.Debug("Method ListFiles invoked.")
+	rows, err := ss.db.ListAllPaged(limit, offset)
+	if err != nil {
+		ss.logger.Error("Error: " + err.Error())
+		return nil, &util.ResponseError{
+			StatusCode: 500,
+			Err:        errors.New(err.Error()),
+		}
+	}
+
+	return rows, nil
+}
+
 func (ss *storageService) WriteFile(ctx context.Context, file io.Reader, metadata util.Metadata, storageFolder string) (string, error) {
 	ss.logger.Debug("Method WriteFile invoked.")
 
@@ -62,7 +76,7 @@ func (ss *storageService) WriteFile(ctx context.Context, file io.Reader, metadat
 		ss.logger.Debug(uuid, metadata.Name)
 
 		// write metadata to db
-		err = ss.db.InsertMetadata(base.Row{
+		err = ss.db.InsertMetadata(util.Row{
 			Uuid:     uuid,
 			FileName: metadata.Name,
 		})
@@ -90,7 +104,7 @@ func (ss *storageService) GetFile(ctx context.Context, uuid string, storageFolde
 	ss.logger.Debug("Method GetFile invoked.")
 
 	// Check db for entry corresponding to file
-	row, err := ss.db.RetrieveMetadata(base.Row{Uuid: uuid, FileName: ""})
+	row, err := ss.db.RetrieveMetadata(util.Row{Uuid: uuid, FileName: ""})
 	if err != nil {
 		ss.logger.Error("Error: " + err.Error())
 		return nil, &util.ResponseError{
@@ -98,7 +112,7 @@ func (ss *storageService) GetFile(ctx context.Context, uuid string, storageFolde
 			Err:        errors.New(err.Error()),
 		}
 	}
-	if row == (base.Row{}) {
+	if row == (util.Row{}) {
 		ss.logger.Error("Error: file not found")
 		return nil, &util.ResponseError{
 			StatusCode: 404,

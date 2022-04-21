@@ -2,6 +2,7 @@ package endpoints
 
 import (
 	"io"
+	"net/http"
 
 	"github.com/erizzardi/storage/util"
 )
@@ -14,28 +15,43 @@ type Response interface{}
 // Requests
 //=========
 
+type NotFoundRequest struct {
+	Endpoint string
+}
+
 type WriteFileRequest struct {
 	File     io.Reader
 	Metadata util.Metadata
+	Headers  http.Header
 }
 
 type GetFileRequest struct {
-	Uuid string
+	Uuid    string
+	Headers http.Header
 }
 
 type DeleteFileRequest struct {
-	Uuid string
+	Uuid    string
+	Headers http.Header
 }
 
 type AddBucketRequest struct {
 	Name       string `json:"name"`
 	Versioning bool   `json:"versioning"`
+	Headers    http.Header
 	// TODO - LifecyclePolicy util.LifecyclePolicy
 }
 
 type LogLevelRequest struct {
-	Layer string `json="layer"`
-	Level string `json="level"`
+	Layer   string `json:"layer"`
+	Level   string `json:"level"`
+	Headers http.Header
+}
+
+type ListFilesRequest struct {
+	Limit   uint `json:"limit"`
+	Offset  uint `json:"offset"`
+	Headers http.Header
 }
 
 //==========
@@ -43,6 +59,11 @@ type LogLevelRequest struct {
 //==========
 
 type HealtzResponse struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+}
+
+type NotFoundResponse struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 }
@@ -55,7 +76,7 @@ type WriteFileResponse struct {
 
 type GetFileResponse struct {
 	Code    int    `json:"code"`
-	Message string `json="message"`
+	Message string `json:"message"`
 	File    []byte `json:"-"`
 }
 
@@ -72,4 +93,10 @@ type AddBucketResponse struct {
 type LogLevelResponse struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
+}
+
+type ListFilesResponse struct {
+	Code    int        `json:"code"`
+	Message string     `json:"message"`
+	Files   []util.Row `json:"files"`
 }

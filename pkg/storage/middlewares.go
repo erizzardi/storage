@@ -9,14 +9,18 @@ import (
 //------------------
 // Transport logging
 //------------------
-type TransportLoggingMiddleware struct {
+type TransportMiddleware struct {
 	Logger *util.Logger
 	Next   http.Handler
 }
 
-func (mw TransportLoggingMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (mw TransportMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
-	mw.Logger.Infof("Incoming request: %s\n", r.Method)
+	// Logs every incoming request
+	mw.Logger.Infof("Incoming request: %s %s", r.Method, r.URL.String())
+
+	// Sets content-type header for every request. If different, it has to be set in the appropriate decodeResponse function
+	w.Header().Set("Content-Type", "application/json")
 
 	mw.Next.ServeHTTP(w, r)
 }

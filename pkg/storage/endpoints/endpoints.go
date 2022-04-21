@@ -10,11 +10,13 @@ import (
 
 type Set struct {
 	HealtzEndpoint     endpoint.Endpoint
+	NotFoundEndpoint   endpoint.Endpoint
 	WriteFileEndpoint  endpoint.Endpoint
 	GetFileEndpoint    endpoint.Endpoint
 	DeleteFileEndpoint endpoint.Endpoint
 	AddBucketEndpoint  endpoint.Endpoint
 	LogLevelEndpoint   endpoint.Endpoint
+	ListFilesEndpoint  endpoint.Endpoint
 }
 
 //-----------------------------------------------
@@ -24,17 +26,38 @@ type Set struct {
 func NewEndpointSet(svc storage.Service, config *util.Config) Set {
 	return Set{
 		HealtzEndpoint:     MakeHealtzEndpoint(),
+		NotFoundEndpoint:   MakeNotFoundEndpoint(),
 		WriteFileEndpoint:  MakeWriteFileEndpoint(svc, config.StorageFolder),
 		GetFileEndpoint:    MakeGetFileEndpoint(svc, config.StorageFolder),
 		DeleteFileEndpoint: MakeDeleteFileEndpoint(svc, config.StorageFolder),
 		AddBucketEndpoint:  MakeAddBucketEndpoint(svc, config.StorageFolder),
 		LogLevelEndpoint:   MakeLogLevelEndpoint(svc, config.StorageFolder),
+		ListFilesEndpoint:  MakeListFilesEndpoint(svc, config.StorageFolder),
 	}
 }
 
 func MakeHealtzEndpoint() endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		return HealtzResponse{Message: "Alive!", Code: 200}, nil
+	}
+}
+
+func MakeNotFoundEndpoint() endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		endpoint := request.(NotFoundRequest).Endpoint
+		return HealtzResponse{Message: "Not found: " + endpoint, Code: 404}, nil
+	}
+}
+
+func MakeListFilesEndpoint(svc storage.Service, storageFolder string) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		req := request.(ListFilesRequest)
+		files, err := svc.ListFiles(ctx, req.Limit, req.Offset)
+		if err != nil {
+			er := err.(*util.ResponseError) // TODO - is it necessary? investigate a more elegant solution
+			return WriteFileResponse{er.StatusCode, err.Error(), ""}, nil
+		}
+		return ListFilesResponse{Code: 200, Message: "Ok", Files: files}, nil
 	}
 }
 

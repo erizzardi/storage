@@ -105,7 +105,7 @@ func main() {
 
 	var service = storage.NewService(db, serviceLogger, map[string]*util.Logger{"transport": transportLogger, "database": databaseLogger})
 	var endpointSet = endpoints.NewEndpointSet(service, config)
-	var httpHandler = storage.TransportLoggingMiddleware{Logger: transportLogger, Next: transport.NewHTTPHandler(endpointSet)}
+	var httpHandler = storage.TransportMiddleware{Logger: transportLogger, Next: transport.NewHTTPHandler(endpointSet)}
 
 	mainLogger.Info("Service initialization complete. Listening on port " + httpPort)
 
