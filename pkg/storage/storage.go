@@ -64,7 +64,7 @@ func (ss *storageService) WriteFile(ctx context.Context, file io.Reader, metadat
 		defer newFile.Close()
 		ss.logger.Debug("Created file " + fileName)
 		ss.logger.Debug("Copying file content to new destination...")
-		if _, err := io.Copy(newFile, file); err != nil {
+		if _, err := io.Copy(newFile, file); err != nil { // why copy?
 			ss.logger.Error("Error: " + err.Error())
 			return "", &util.ResponseError{
 				StatusCode: 500,

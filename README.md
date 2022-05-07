@@ -7,10 +7,10 @@ Attempt at a kubernetes native object storage, with custom JSON API.
 
 ## TODO
 1. UNIT TESTS
-2. paged API to list objects
+2. <del>paged API to list objects,</del>
 3. <del>API to set loglevel at runtime</del>
-4. improve response writing - headers are fucked up
-5. use buffered read/writes, to cap memory usage
+4. <del>improve response writing - headers are fucked up</del>
+5. improve read/write of large files - buffered IO operations to cap memory?
 6. improve container compatibility
 7. object lifecycle policies
 8. object versioning
