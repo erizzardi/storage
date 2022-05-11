@@ -13,9 +13,9 @@ type SqlDB struct {
 	table  string
 }
 
-func NewSqlDatabase(logger *util.Logger, table string) DB {
+func NewSqlDatabase(db *sql.DB, logger *util.Logger, table string) DB {
 	return &SqlDB{
-		db:     &sql.DB{},
+		db:     db,
 		logger: logger,
 		table:  table,
 	}
@@ -43,7 +43,6 @@ func (sqldb *SqlDB) Exec(statementString string, params ...any) (sql.Result, err
 	if err != nil {
 		return nil, err
 	}
-	// sqldb.logger.Errorf("%T", statement)
 	res, err := statement.Exec(params...)
 	if err != nil {
 		return nil, err
@@ -97,7 +96,7 @@ func (sqldb *SqlDB) InsertMetadata(row util.Row) error {
 	if err != nil {
 		return err
 	}
-	sqldb.logger.Debugf("Created %s rows", rowCnt)
+	sqldb.logger.Debugf("Created %d rows", rowCnt)
 
 	return nil
 }
@@ -107,15 +106,19 @@ func (sqldb *SqlDB) RetrieveMetadata(row util.Row) (util.Row, error) {
 
 	statementString := "SELECT * FROM " + sqldb.table + " WHERE uuid = $1;"
 	sqldb.logger.Debug(statementString)
-	statement, err := sqldb.db.Prepare(statementString)
+	rows, err := sqldb.Query(statementString, row.Uuid)
 	if err != nil {
 		return util.Row{}, err
 	}
-	sqldb.logger.Debug("Select query prepared")
-	rows, err := statement.Query(row.Uuid)
-	if err != nil {
-		return util.Row{}, err
-	}
+	// statement, err := sqldb.db.Prepare(statementString)
+	// if err != nil {
+	// 	return util.Row{}, err
+	// }
+	// sqldb.logger.Debug("Select query prepared")
+	// rows, err := statement.Query(row.Uuid)
+	// if err != nil {
+	// 	return util.Row{}, err
+	// }
 	sqldb.logger.Debug("Insert query executed")
 	for rows.Next() {
 		err := rows.Scan(&ret.Uuid, &ret.FileName)

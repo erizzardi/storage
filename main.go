@@ -20,35 +20,40 @@ import (
 )
 
 // defaults
-// TODO - change with better names!!
+// some sensitive values shouldn't have defaults.
+// they'd need to be read from k8s secrets
 const (
 	defaultHTTPPort      = "8081"
+	defaultSSLMode       = "disable"
 	defaultLogLevel      = "INFO"
 	defaultStorageFolder = "./file-storage" // absolute path
 	defaultDBDriver      = "postgres"
-	defaultDBUsername    = "postgres"
-	defaultDBPassword    = "postgres"
-	defaultDBDatabase    = "storage-metadata"
-	defaultDBIP          = "localhost"
-	defaultDBPort        = "5432"
+	defaultDBUsername    = "postgres"  // secret
+	defaultDBPassword    = "password"  // secret
+	defaultDBDatabase    = "metadata"  // secret
+	defaultDBIP          = "localhost" // secret
+	defaultDBPort        = "5432"      // secret
 	defaultDBTable       = "meta"
 )
 
 // global variables, read from environment
 var (
+	// variables with default
 	httpPort          = util.EnvString("STORAGE_HTTP_PORT", defaultHTTPPort)
+	sslMode           = util.EnvString("STORAGE_SSL_MODE", defaultSSLMode)
 	mainLogLevel      = util.EnvString("STORAGE_MAIN_LOG_LEVEL", defaultLogLevel)
 	serviceLogLevel   = util.EnvString("STORAGE_SERVICE_LOG_LEVEL", defaultLogLevel)
 	transportLogLevel = util.EnvString("STORAGE_TRANSPORT_LOG_LEVEL", defaultLogLevel)
 	databaseLogLevel  = util.EnvString("STORAGE_DB_LOG_LEVEL", defaultLogLevel)
 	storageFolder     = util.EnvString("STORAGE_FOLDER", defaultStorageFolder)
 	dbDriver          = util.EnvString("STORAGE_DB_DRIVER", defaultDBDriver)
-	dbUser            = util.EnvString("STORAGE_DB_USER", defaultDBUsername)
-	dbPassword        = util.EnvString("STORAGE_DB_PASSWORD", defaultDBPassword)
-	dbDatabase        = util.EnvString("STORAGE_DB_DB", defaultDBDatabase)
-	dbHost            = util.EnvString("STORAGE_DB_HOST", defaultDBIP)
-	dbPort            = util.EnvString("STORAGE_DB_PORT", defaultDBPort)
 	dbTable           = util.EnvString("STORAGE_DB_TABLE", defaultDBTable)
+
+	// variables without default (secrets)
+	dbUser     = os.Getenv("STORAGE_DB_USER")
+	dbPassword = os.Getenv("STORAGE_DB_PASSWORD")
+	dbDatabase = os.Getenv("STORAGE_DB_DB")
+	dbHost     = os.Getenv("STORAGE_DB_HOST")
 )
 
 // Loggers for every layer.
@@ -73,12 +78,12 @@ func main() {
 	//---------------------------------
 	var db base.DB
 
-	connStr := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=disable", dbUser, dbPassword, dbHost, dbPort, dbDatabase)
+	connStr := fmt.Sprintf("postgresql://%s:%s@%s/%s?sslmode=%s", dbUser, dbPassword, dbHost, dbDatabase, sslMode)
 	mainLogger.Debug(connStr)
 
 	switch dbDriver {
 	case "postgres":
-		db = base.NewSqlDatabase(databaseLogger, dbTable)
+		db = base.NewSqlDatabase(nil, databaseLogger, dbTable)
 	// TODO - case "mysql":
 	// TODO - case "cassandra":
 	default:
@@ -151,7 +156,7 @@ func main() {
 // init loggers
 func init() {
 	util.InitLogger(mainLogger, mainLogLevel, logrus.Fields{"level": "main"})
-	util.InitLogger(serviceLogger, mainLogLevel, logrus.Fields{"level": "service"})
-	util.InitLogger(transportLogger, mainLogLevel, logrus.Fields{"level": "transport"})
-	util.InitLogger(databaseLogger, mainLogLevel, logrus.Fields{"level": "database"})
+	util.InitLogger(serviceLogger, serviceLogLevel, logrus.Fields{"level": "service"})
+	util.InitLogger(transportLogger, transportLogLevel, logrus.Fields{"level": "transport"})
+	util.InitLogger(databaseLogger, databaseLogLevel, logrus.Fields{"level": "database"})
 }

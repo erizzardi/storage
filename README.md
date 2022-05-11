@@ -6,15 +6,19 @@ Attempt at a kubernetes native object storage, with custom JSON API.
 1. the user and the databases need to be created in order for the service to work
 
 ## TODO
-1. UNIT TESTS
+1. UNIT TESTS 
 2. <del>paged API to list objects,</del>
 3. <del>API to set loglevel at runtime</del>
 4. <del>improve response writing - headers are fucked up</del>
-5. improve read/write of large files - buffered IO operations to cap memory?
-6. improve container compatibility
-7. object lifecycle policies
-8. object versioning
-9. implement buckets
-10. check kubernetes compatibility
-11. authentication and permissions
-12. implement DB interface for other kinds of DBs (ideally: MySQL, CockroachDB, Couchbase, Cassandra)
+5. <del>remove default values and have them read from secrets as env variables</del>
+6. improve read/write of large files - buffered IO operations to cap memory?
+7. implement caching - check varnish compatibility
+8. improve container compatibility
+9. object lifecycle policies
+10. object versioning
+11. implement buckets
+12. check kubernetes compatibility
+13. helm chart
+14. authentication and permissions
+15. ad methods that prepare every possible query
+16. implement DB interface for other kinds of DBs (ideally: MySQL, CockroachDB, Couchbase, Cassandra)
