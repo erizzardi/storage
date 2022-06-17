@@ -35,8 +35,8 @@ fi
 # Defaults the test db to localhost:5432.
 # This values can be overridden if using, for example, 
 # a dummy db in a gitlab runner instance. 
-if [[ -z $TEST_DB_ADDR ]]; then
-    TEST_DB_ADDR="127.0.0.1"
+if [[ -z $TEST_DB_HOST ]]; then
+    TEST_DB_HOST="127.0.0.1"
 fi
 if [[ -z $TEST_DB_PORT ]]; then
     TEST_DB_PORT="5432"
@@ -48,7 +48,9 @@ fi
 if [[ -z $TEST_DB_PASSWORD ]]; then
     TEST_DB_PASSWORD="password"
 fi
-
+if [[ -z $TEST_DB_DATABASE ]]; then
+    TEST_DB_DATABASE="test-db"
+fi
 
 CONTAINER_NAME="test-$TEST_DB"
 
@@ -74,6 +76,10 @@ fi
 case "$TEST_DB" in
 
   "postgres")
+
+    # Connection string for the test database is created here, then injected in the testing execution.
+    TEST_DB_CONN_STR="postgresql://${TEST_DB_USER}:${TEST_DB_PASSWORD}@${TEST_DB_HOST}:${TEST_DB_PORT}/${TEST_DB_DATABASE}?sslmode=disable"
+
     docker run -d \
 	    --name "$CONTAINER_NAME" \
         -e POSTGRES_USER="$TEST_DB_USER" \

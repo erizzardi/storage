@@ -14,6 +14,8 @@ type TransportMiddleware struct {
 	Next   http.Handler
 }
 
+// Middleware for transport layer. It logs every incoming transaction.
+// Maybe not needed? Istio/Nginx could do this for free
 func (mw TransportMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Logs every incoming request

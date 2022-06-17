@@ -13,11 +13,11 @@ type SqlDB struct {
 	table  string
 }
 
-func NewSqlDatabase(db *sql.DB, logger *util.Logger, table string) DB {
+func NewSqlDatabase(logger *util.Logger, table string) DB {
 	return &SqlDB{
-		db:     db,
+		db:     &sql.DB{},
 		logger: logger,
-		table:  table,
+		table:  table, // change!
 	}
 }
 

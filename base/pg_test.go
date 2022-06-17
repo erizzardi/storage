@@ -1,23 +1,27 @@
 package base
 
 import (
+	"os"
 	"testing"
 
-	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/erizzardi/storage/util"
 )
 
-var db, mock, _ = sqlmock.New()
+// Unit tests for the postgres implementation of the db interface.
 
-var table = "table"
+var (
+	testDbConnStr = os.Getenv("TEST_DB_CONN_STR")
+	testLogger    = util.NewLogger()
+	db            = NewSqlDatabase(testLogger, "meta") // change
 
-var testDB = NewSqlDatabase(db, util.NewLogger(), table)
+	driver = "postgres"
+)
 
-// ????
-func TestExecSuccess(t *testing.T) {
-	mock.ExpectBegin()
-	mock.ExpectExec("INSERT INTO "+table).WithArgs(1, 2).WillReturnResult(sqlmock.NewResult(1, 1))
-	mock.ExpectCommit()
+func TestConnect(t *testing.T) {
 
-	testDB.Exec("INSERT INTO " + table + " VALUES(1,2)")
+	err := db.Connect(driver, testDbConnStr)
+	if err != nil {
+		t.Error("Cannot connect to database: " + err.Error())
+	}
+
 }

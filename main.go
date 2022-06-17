@@ -54,6 +54,7 @@ var (
 	dbPassword = os.Getenv("STORAGE_DB_PASSWORD")
 	dbDatabase = os.Getenv("STORAGE_DB_DB")
 	dbHost     = os.Getenv("STORAGE_DB_HOST")
+	dbPort     = os.Getenv("STORAGE_DB_PORT")
 )
 
 // Loggers for every layer.
@@ -78,12 +79,12 @@ func main() {
 	//---------------------------------
 	var db base.DB
 
-	connStr := fmt.Sprintf("postgresql://%s:%s@%s/%s?sslmode=%s", dbUser, dbPassword, dbHost, dbDatabase, sslMode)
+	connStr := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=%s", dbUser, dbPassword, dbHost, dbPort, dbDatabase, sslMode)
 	mainLogger.Debug(connStr)
 
 	switch dbDriver {
 	case "postgres":
-		db = base.NewSqlDatabase(nil, databaseLogger, dbTable)
+		db = base.NewSqlDatabase(databaseLogger, dbTable)
 	// TODO - case "mysql":
 	// TODO - case "cassandra":
 	default:

@@ -164,7 +164,7 @@ func (ss *storageService) DeleteFile(ctx context.Context, uuid string, storageFo
 
 func (ss *storageService) SetLogLevel(ctx context.Context, layer string, level string) error {
 	ss.logger.Debug("Method SetLogLevel invoked")
-	logrusLevel, err := util.LogLevelMapping(level)
+	logLevel, err := util.LogLevelMapping(level)
 	if err != nil {
 		return &util.ResponseError{
 			StatusCode: 400,
@@ -172,7 +172,7 @@ func (ss *storageService) SetLogLevel(ctx context.Context, layer string, level s
 		}
 	}
 	if layer == "service" {
-		ss.logger.SetLevel(logrusLevel)
+		ss.logger.SetLevel(logLevel)
 	}
 	return nil
 }
