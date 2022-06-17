@@ -5,6 +5,9 @@ Attempt at a kubernetes native object storage, with custom JSON API.
 ## postgres
 1. the user and the databases need to be created in order for the service to work
 
+## Unit tests
+Unit tests require a db instance running on `$TEST_DB_ADDR:$TEST_DB_PORT`. The script `unit_tests.sh` spins up a db isntance automatically, and launches the unit tests. This is the preferred way to execute unit tests, and it should be used in a CI/CD environment. 
+
 ## TODO
 1. UNIT TESTS 
 2. <del>paged API to list objects,</del>
