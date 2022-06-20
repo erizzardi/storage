@@ -153,7 +153,7 @@ func (sqldb *SqlDB) RetrieveMetadata(row util.Row) (util.Row, error) {
 	if err != nil {
 		return util.Row{}, err
 	}
-	sqldb.logger.Debug("Insert query executed")
+	sqldb.logger.Debug("Select query executed")
 	for rows.Next() {
 		err := rows.Scan(&ret.Uuid, &ret.FileName)
 		if err != nil {
