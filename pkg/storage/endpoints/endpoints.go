@@ -2,6 +2,7 @@ package endpoints
 
 import (
 	"context"
+	"errors"
 
 	"github.com/erizzardi/storage/pkg/storage"
 	"github.com/erizzardi/storage/util"
@@ -9,14 +10,15 @@ import (
 )
 
 type Set struct {
-	HealtzEndpoint     endpoint.Endpoint
-	NotFoundEndpoint   endpoint.Endpoint
-	WriteFileEndpoint  endpoint.Endpoint
-	GetFileEndpoint    endpoint.Endpoint
-	DeleteFileEndpoint endpoint.Endpoint
-	AddBucketEndpoint  endpoint.Endpoint
-	LogLevelEndpoint   endpoint.Endpoint
-	ListFilesEndpoint  endpoint.Endpoint
+	HealtzEndpoint           endpoint.Endpoint
+	NotFoundEndpoint         endpoint.Endpoint
+	MethodNotAllowedEndpoint endpoint.Endpoint
+	WriteFileEndpoint        endpoint.Endpoint
+	GetFileEndpoint          endpoint.Endpoint
+	DeleteFileEndpoint       endpoint.Endpoint
+	AddBucketEndpoint        endpoint.Endpoint
+	LogLevelEndpoint         endpoint.Endpoint
+	ListFilesEndpoint        endpoint.Endpoint
 }
 
 //-----------------------------------------------
@@ -25,16 +27,23 @@ type Set struct {
 //-----------------------------------------------
 func NewEndpointSet(svc storage.Service, config *util.Config) Set {
 	return Set{
-		HealtzEndpoint:     MakeHealtzEndpoint(),
-		NotFoundEndpoint:   MakeNotFoundEndpoint(),
-		WriteFileEndpoint:  MakeWriteFileEndpoint(svc, config.StorageFolder),
-		GetFileEndpoint:    MakeGetFileEndpoint(svc, config.StorageFolder),
-		DeleteFileEndpoint: MakeDeleteFileEndpoint(svc, config.StorageFolder),
-		AddBucketEndpoint:  MakeAddBucketEndpoint(svc, config.StorageFolder),
-		LogLevelEndpoint:   MakeLogLevelEndpoint(svc, config.StorageFolder),
-		ListFilesEndpoint:  MakeListFilesEndpoint(svc, config.StorageFolder),
+		HealtzEndpoint:           MakeHealtzEndpoint(),
+		NotFoundEndpoint:         MakeNotFoundEndpoint(),
+		MethodNotAllowedEndpoint: MakeMethodNotAllowedEndpoint(),
+		WriteFileEndpoint:        MakeWriteFileEndpoint(svc, config.StorageFolder),
+		GetFileEndpoint:          MakeGetFileEndpoint(svc, config.StorageFolder),
+		DeleteFileEndpoint:       MakeDeleteFileEndpoint(svc, config.StorageFolder),
+		AddBucketEndpoint:        MakeAddBucketEndpoint(svc, config.StorageFolder),
+		LogLevelEndpoint:         MakeLogLevelEndpoint(svc, config.StorageFolder),
+		ListFilesEndpoint:        MakeListFilesEndpoint(svc, config.StorageFolder),
 	}
 }
+
+//=================================================================================
+// Endpoint layer
+//---------------------------------------------------------------------------------
+// NEVER return errors via endpoint.Endpoint. It fucks up all the response encoding
+//=================================================================================
 
 func MakeHealtzEndpoint() endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
@@ -49,6 +58,13 @@ func MakeNotFoundEndpoint() endpoint.Endpoint {
 	}
 }
 
+func MakeMethodNotAllowedEndpoint() endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		method := request.(MethodNotAllowedRequest).Method
+		return HealtzResponse{Message: "Method not allowed: " + method, Code: 415}, nil
+	}
+}
+
 func MakeListFilesEndpoint(svc storage.Service, storageFolder string) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(ListFilesRequest)
@@ -56,9 +72,8 @@ func MakeListFilesEndpoint(svc storage.Service, storageFolder string) endpoint.E
 			return WriteFileResponse{400, "Could not read body: " + req.Err.Error(), ""}, nil
 		}
 		files, err := svc.ListFiles(ctx, req.Limit, req.Offset)
-		if err != nil {
-			er := err.(*util.ResponseError) // TODO - is it necessary? investigate a more elegant solution
-			return WriteFileResponse{er.StatusCode, err.Error(), ""}, nil
+		if errors.Is(err, util.InternalServerError{}) {
+			return ListFilesResponse{Code: 500, Message: err.Error(), Files: nil}, nil
 		}
 		return ListFilesResponse{Code: 200, Message: "Ok", Files: files}, nil
 	}

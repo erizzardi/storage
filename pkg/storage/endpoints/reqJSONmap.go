@@ -19,6 +19,10 @@ type NotFoundRequest struct {
 	Endpoint string
 }
 
+type MethodNotAllowedRequest struct {
+	Method string
+}
+
 type WriteFileRequest struct {
 	File     io.Reader
 	Metadata util.Metadata

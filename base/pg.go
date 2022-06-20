@@ -181,7 +181,7 @@ func (sqldb *SqlDB) ListAllPaged(limit uint, offset uint) ([]util.Row, error) {
 	if err != nil {
 		return []util.Row{}, err
 	}
-	sqldb.logger.Debug("Insert query executed")
+	sqldb.logger.Debug("Select query executed")
 	for i := 0; rows.Next(); i++ {
 		err := rows.Scan(&tempUuid, &tempFileName)
 		if err != nil {

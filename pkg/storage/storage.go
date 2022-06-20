@@ -27,20 +27,24 @@ func NewService(db base.DB, logger *util.Logger, layerLoggersMap map[string]*uti
 	return &storageService{db: db, logger: logger, layerLoggersMap: layerLoggersMap}
 }
 
-//----------------------------------------------
+//===================================================================================
 // This is where the API methods are implemented
-//----------------------------------------------
+//-----------------------------------------------------------------------------------
+// Error handling: this layer doesn't know anything about response codes or messages.
+// This just returns the type of error.
+//===================================================================================
+
+//
+// ListFiles list metadata, paged
+// returns 200, 500
 func (ss *storageService) ListFiles(ctx context.Context, limit uint, offset uint) ([]util.Row, error) {
+
 	ss.logger.Debug("Method ListFiles invoked.")
 	rows, err := ss.db.ListAllPaged(limit, offset)
 	if err != nil {
-		ss.logger.Error("Error: " + err.Error())
-		return nil, &util.ResponseError{
-			StatusCode: 500,
-			Err:        errors.New(err.Error()),
-		}
+		ss.logger.Error(err.Error())
+		return nil, util.InternalServerError{}
 	}
-
 	return rows, nil
 }
 
@@ -56,20 +60,14 @@ func (ss *storageService) WriteFile(ctx context.Context, file io.Reader, metadat
 		newFile, err := os.Create(fileName)
 		if err != nil {
 			ss.logger.Error("Error: " + err.Error())
-			return "", &util.ResponseError{
-				StatusCode: 500,
-				Err:        errors.New(err.Error()),
-			}
+			return "", util.InternalServerError{}
 		}
 		defer newFile.Close()
 		ss.logger.Debug("Created file " + fileName)
 		ss.logger.Debug("Copying file content to new destination...")
 		if _, err := io.Copy(newFile, file); err != nil { // why copy?
 			ss.logger.Error("Error: " + err.Error())
-			return "", &util.ResponseError{
-				StatusCode: 500,
-				Err:        errors.New(err.Error()),
-			}
+			return "", util.InternalServerError{}
 		}
 		ss.logger.Debug("File content copied")
 
@@ -82,20 +80,14 @@ func (ss *storageService) WriteFile(ctx context.Context, file io.Reader, metadat
 		})
 		if err != nil {
 			ss.logger.Error("Error: " + err.Error())
-			return "", &util.ResponseError{
-				StatusCode: 500,
-				Err:        errors.New(err.Error()),
-			}
+			return "", util.InternalServerError{}
 		}
 
 		ss.logger.Info("File " + uuid + " created successfully")
 
 	} else {
 		ss.logger.Error("Error: file already exists")
-		return "", &util.ResponseError{
-			StatusCode: 409,
-			Err:        errors.New("file already exists"),
-		}
+		return "", util.ConflictError{}
 	}
 	return uuid, nil
 }
@@ -107,34 +99,22 @@ func (ss *storageService) GetFile(ctx context.Context, uuid string, storageFolde
 	row, err := ss.db.RetrieveMetadata(util.Row{Uuid: uuid, FileName: ""})
 	if err != nil {
 		ss.logger.Error("Error: " + err.Error())
-		return nil, &util.ResponseError{
-			StatusCode: 500,
-			Err:        errors.New(err.Error()),
-		}
+		return nil, util.InternalServerError{}
 	}
 	if row == (util.Row{}) {
 		ss.logger.Error("Error: file not found")
-		return nil, &util.ResponseError{
-			StatusCode: 404,
-			Err:        errors.New("file not found"),
-		}
+		return nil, util.NotFoundError{}
 	}
 
 	fileName := filepath.Join(storageFolder, uuid)
 	if _, err := os.Stat(fileName); errors.Is(err, os.ErrNotExist) {
 		ss.logger.Error("Error: " + err.Error())
-		return nil, &util.ResponseError{
-			StatusCode: 404,
-			Err:        errors.New(err.Error()),
-		}
+		return nil, util.NotFoundError{}
 	}
 	file, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		ss.logger.Error("Error: " + err.Error())
-		return nil, &util.ResponseError{
-			StatusCode: 500,
-			Err:        errors.New(err.Error()),
-		}
+		return nil, util.InternalServerError{}
 	}
 	ss.logger.Info("File " + uuid + " retrieved successfully")
 	return file, nil
@@ -146,17 +126,11 @@ func (ss *storageService) DeleteFile(ctx context.Context, uuid string, storageFo
 
 	if _, err := os.Stat(fileName); errors.Is(err, os.ErrNotExist) {
 		ss.logger.Error("Error: " + err.Error())
-		return &util.ResponseError{
-			StatusCode: 404,
-			Err:        errors.New(err.Error()),
-		}
+		return util.NotFoundError{}
 	}
 	if err := os.Remove(fileName); err != nil {
 		ss.logger.Error("Error: " + err.Error())
-		return &util.ResponseError{
-			StatusCode: 500,
-			Err:        errors.New(err.Error()),
-		}
+		return util.InternalServerError{}
 	}
 	ss.logger.Info("File " + fileName + "deleted successfully")
 	return nil
@@ -166,10 +140,7 @@ func (ss *storageService) SetLogLevel(ctx context.Context, layer string, level s
 	ss.logger.Debug("Method SetLogLevel invoked")
 	logLevel, err := util.LogLevelMapping(level)
 	if err != nil {
-		return &util.ResponseError{
-			StatusCode: 400,
-			Err:        errors.New("Error: " + err.Error()),
-		}
+		return util.BadRequestError{}
 	}
 	if layer == "service" {
 		ss.logger.SetLevel(logLevel)

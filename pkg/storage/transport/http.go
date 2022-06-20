@@ -20,6 +20,12 @@ func NewHTTPHandler(ep endpoints.Set) http.Handler {
 		encodeNotFoundResponse,
 	)
 
+	r.MethodNotAllowedHandler = httptransport.NewServer(
+		ep.MethodNotAllowedEndpoint,
+		decodeHTTPMethodNotAllowedRequest,
+		encodeMethodNotAllowedResponse,
+	)
+
 	r.Methods("GET").Path("/healtz").Handler(httptransport.NewServer(
 		ep.HealtzEndpoint,
 		decodeHTTPHealtzRequest,
@@ -65,9 +71,13 @@ func NewHTTPHandler(ep endpoints.Set) http.Handler {
 	return r
 }
 
-//=================
+//==============================================================================================
 // Request Decoders
-//=================
+// ---------------------------------------------------------------------------------------------
+// All these method return an error. NEVER return errors directly with these functions
+// because if so the framework skips all the logic and directly sends err.Error() to the client.
+// Handle errors in the endpoints layer, by adding it in the request structure.
+//==============================================================================================
 func decodeHTTPHealtzRequest(ctx context.Context, r *http.Request) (interface{}, error) {
 	return nil, nil
 }
@@ -76,11 +86,14 @@ func decodeHTTPNotFoundRequest(ctx context.Context, r *http.Request) (interface{
 	return endpoints.NotFoundRequest{Endpoint: r.URL.String()}, nil
 }
 
+func decodeHTTPMethodNotAllowedRequest(ctx context.Context, r *http.Request) (interface{}, error) {
+	return endpoints.MethodNotAllowedRequest{Method: r.Method}, nil
+}
+
 func decodeHTTPListFilesRequest(ctx context.Context, r *http.Request) (interface{}, error) {
 	req := &endpoints.ListFilesRequest{}
-	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
-		req.Err = err
-	}
+	err := json.NewDecoder(r.Body).Decode(req)
+	req.Err = err
 
 	return *req, nil
 }
@@ -89,15 +102,14 @@ func decodeHTTPWriteFileRequest(ctx context.Context, r *http.Request) (interface
 	defer r.Body.Close()
 
 	file, multipartHeader, err := r.FormFile("file")
-	if err != nil && err != http.ErrMissingFile {
-		return nil, err
-	}
+
 	return endpoints.WriteFileRequest{
 		File: file,
 		Metadata: util.Metadata{
 			Name: multipartHeader.Filename,
 			Size: multipartHeader.Size,
 		},
+		Err: err,
 	}, nil
 }
 
@@ -180,5 +192,9 @@ func encodeLogLevelResponse(ctx context.Context, w http.ResponseWriter, response
 }
 
 func encodeNotFoundResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
+	return json.NewEncoder(w).Encode(response)
+}
+
+func encodeMethodNotAllowedResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
 	return json.NewEncoder(w).Encode(response)
 }
