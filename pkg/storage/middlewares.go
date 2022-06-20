@@ -6,9 +6,9 @@ import (
 	"github.com/erizzardi/storage/util"
 )
 
-//------------------
+//==================
 // Transport logging
-//------------------
+//==================
 type TransportMiddleware struct {
 	Logger *util.Logger
 	Next   http.Handler

@@ -44,6 +44,7 @@ var (
 	mainLogLevel      = util.EnvString("STORAGE_MAIN_LOG_LEVEL", defaultLogLevel)
 	serviceLogLevel   = util.EnvString("STORAGE_SERVICE_LOG_LEVEL", defaultLogLevel)
 	transportLogLevel = util.EnvString("STORAGE_TRANSPORT_LOG_LEVEL", defaultLogLevel)
+	endpointsLogLevel = util.EnvString("STORAGE_ENDPOINTS_LOG_LEVEL", defaultLogLevel)
 	databaseLogLevel  = util.EnvString("STORAGE_DB_LOG_LEVEL", defaultLogLevel)
 	storageFolder     = util.EnvString("STORAGE_FOLDER", defaultStorageFolder)
 	dbDriver          = util.EnvString("STORAGE_DB_DRIVER", defaultDBDriver)
@@ -63,6 +64,7 @@ var (
 	mainLogger      = util.NewLogger()
 	serviceLogger   = util.NewLogger()
 	transportLogger = util.NewLogger()
+	endpointsLogger = util.NewLogger()
 	databaseLogger  = util.NewLogger()
 )
 
@@ -113,7 +115,7 @@ func main() {
 	mainLogger.Debugf("Config variables: %+v\n", config) // TODO
 
 	var service = storage.NewService(db, serviceLogger, map[string]*util.Logger{"transport": transportLogger, "database": databaseLogger})
-	var endpointSet = endpoints.NewEndpointSet(service, config)
+	var endpointSet = endpoints.NewEndpointSet(service, config, endpointsLogger)
 	var httpHandler = storage.TransportMiddleware{Logger: transportLogger, Next: transport.NewHTTPHandler(endpointSet)}
 
 	mainLogger.Info("Service initialization complete. Listening on port " + httpPort)
@@ -162,5 +164,6 @@ func init() {
 	util.InitLogger(mainLogger, mainLogLevel, logrus.Fields{"level": "main"})
 	util.InitLogger(serviceLogger, serviceLogLevel, logrus.Fields{"level": "service"})
 	util.InitLogger(transportLogger, transportLogLevel, logrus.Fields{"level": "transport"})
+	util.InitLogger(endpointsLogger, endpointsLogLevel, logrus.Fields{"level": "endpoints"})
 	util.InitLogger(databaseLogger, databaseLogLevel, logrus.Fields{"level": "database"})
 }
