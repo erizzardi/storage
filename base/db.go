@@ -19,6 +19,11 @@ type DB interface {
 	Init() error
 	//
 	//
+	// Drops tables created by Init().
+	// To be used in tests, thus unexported
+	tearDown() error
+	//
+	//
 	// Prepares and executes 'statement' operation.
 	// Use with INSERT, CREATE, DELETE statements
 	Exec(statement string, params ...any) (sql.Result, error)

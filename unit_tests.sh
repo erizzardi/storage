@@ -89,9 +89,9 @@ case "$TEST_DB" in
     ;;
 esac
 
-
 # TODO Add unit tests execution here
 # TODO Add unit tests
+# TEST_DB_CONN_STR="$TEST_DB_CONN_STR" go test -v
 echo "Running tests..."
 
 # The end! The trap should now activate

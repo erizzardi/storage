@@ -47,7 +47,7 @@ var (
 	databaseLogLevel  = util.EnvString("STORAGE_DB_LOG_LEVEL", defaultLogLevel)
 	storageFolder     = util.EnvString("STORAGE_FOLDER", defaultStorageFolder)
 	dbDriver          = util.EnvString("STORAGE_DB_DRIVER", defaultDBDriver)
-	dbTable           = util.EnvString("STORAGE_DB_TABLE", defaultDBTable)
+	// dbTable           = util.EnvString("STORAGE_DB_TABLE", defaultDBTable)
 
 	// variables without default (secrets)
 	dbUser     = os.Getenv("STORAGE_DB_USER")
@@ -57,9 +57,9 @@ var (
 	dbPort     = os.Getenv("STORAGE_DB_PORT")
 )
 
-// Loggers for every layer.
-// Logging settings can be set individually for each layer
 var (
+	// Loggers for every layer.
+	// Logging settings can be set individually for each layer
 	mainLogger      = util.NewLogger()
 	serviceLogger   = util.NewLogger()
 	transportLogger = util.NewLogger()
@@ -84,8 +84,9 @@ func main() {
 
 	switch dbDriver {
 	case "postgres":
-		db = base.NewSqlDatabase(databaseLogger, dbTable)
+		db = base.NewSqlDatabase(databaseLogger)
 	// TODO - case "mysql":
+	// TODO - case "cockroach":
 	// TODO - case "cassandra":
 	default:
 		mainLogger.Error("Unsupported DB type. Supported types: postgres")
@@ -95,13 +96,15 @@ func main() {
 	err := db.Connect(dbDriver, connStr)
 	if err != nil {
 		mainLogger.Fatal("Error: cannot connect to database: " + err.Error())
+		os.Exit(1)
 	}
 	mainLogger.Info("Database connected")
 	defer db.Close() // this fails if db connection is not established
 
 	err = db.Init()
 	if err != nil {
-		mainLogger.Error("Error: cannot connect to database: " + err.Error())
+		mainLogger.Fatal("Error: cannot initialize database: " + err.Error())
+		os.Exit(1)
 	}
 
 	//----------------------------------

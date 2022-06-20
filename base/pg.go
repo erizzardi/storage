@@ -10,14 +10,38 @@ import (
 type SqlDB struct {
 	db     *sql.DB
 	logger *util.Logger
-	table  string
+	tables []table
 }
 
-func NewSqlDatabase(logger *util.Logger, table string) DB {
+func NewSqlDatabase(logger *util.Logger) DB {
 	return &SqlDB{
 		db:     &sql.DB{},
 		logger: logger,
-		table:  table, // change!
+		//-------------------
+		// Database Structure
+		//-------------------
+		tables: []table{
+			{
+				name: "meta",
+				columns: []column{
+					newColumn("uuid", "uuid", true, false),
+					newColumn("fileName", "varchar(255)", false, true),
+				},
+				labels: map[string]any{
+					"content": "metadata",
+				},
+			},
+			{
+				name: "bucket",
+				columns: []column{
+					newColumn("name", "varchar(255)", true, false),
+					newColumn("owner", "varchar(255)", false, true),
+				},
+				labels: map[string]any{
+					"content": "bucket",
+				},
+			},
+		},
 	}
 }
 
@@ -64,27 +88,46 @@ func (sqldb *SqlDB) Query(statementString string, params ...any) (*sql.Rows, err
 	return rows, nil
 }
 
+// Init() loads structure into database
 func (sqldb *SqlDB) Init() error {
-	sqldb.logger.Debug("Creating 'meta' table, if doesn't exist")
-	statementString := "CREATE TABLE IF NOT EXISTS " + sqldb.table + " ( uuid uuid PRIMARY KEY, fileName varchar(255) NOT NULL );"
-	if _, err := sqldb.Exec(statementString); err != nil {
-		return err
+
+	for _, table := range sqldb.tables {
+		sqldb.logger.Debugf("Creating '%s' table, if doesn't exist", table.name)
+		statementString := "CREATE TABLE IF NOT EXISTS " + table.name + " ("
+		for i, column := range table.columns {
+			if i != 0 {
+				statementString += ","
+			}
+			statementString += column.toString()
+		}
+		statementString += ")"
+		sqldb.logger.Debug("Table creation statement: " + statementString)
+		if _, err := sqldb.Exec(statementString); err != nil {
+			return err
+		}
+		sqldb.logger.Debugf("Create Table '%s' executed", table.name)
 	}
-	sqldb.logger.Debug("Create Table 'meta' query executed")
+	return nil
+}
 
-	sqldb.logger.Debug("Creating 'bucket' table, if doesn't exist")
-	statementString = "CREATE TABLE IF NOT EXISTS " + sqldb.table + " ( name varchar(255) PRIMARY KEY, owner varchar(255) NOT NULL);"
-	if _, err := sqldb.Exec(statementString); err != nil {
-		return err
+// TearDown() drops all the tables created by Init(). To be used in tests!
+func (sqldb *SqlDB) tearDown() error {
+
+	for _, table := range sqldb.tables {
+		sqldb.logger.Debugf("Dropping table '%s'", table.name)
+		statementString := "DROP TABLE " + table.name
+		sqldb.logger.Debug("Table creation statement: " + statementString)
+		if _, err := sqldb.Exec(statementString); err != nil {
+			return err
+		}
+		sqldb.logger.Debugf("Dropped table '%s'", table.name)
 	}
-
-	sqldb.logger.Debug("Create Table 'bucket' query executed")
-
 	return nil
 }
 
 func (sqldb *SqlDB) InsertMetadata(row util.Row) error {
-	statementString := "INSERT INTO " + sqldb.table + " VALUES( $1, $2 );"
+
+	statementString := "INSERT INTO " + sqldb.GetTableFromLabel("metadata") + " VALUES( $1, $2 );"
 	sqldb.logger.Debug(statementString)
 
 	res, err := sqldb.Exec(statementString, row.Uuid, row.FileName)
@@ -104,21 +147,12 @@ func (sqldb *SqlDB) InsertMetadata(row util.Row) error {
 func (sqldb *SqlDB) RetrieveMetadata(row util.Row) (util.Row, error) {
 	var ret util.Row
 
-	statementString := "SELECT * FROM " + sqldb.table + " WHERE uuid = $1;"
+	statementString := "SELECT * FROM " + sqldb.GetTableFromLabel("metadata") + " WHERE uuid = $1;"
 	sqldb.logger.Debug(statementString)
 	rows, err := sqldb.Query(statementString, row.Uuid)
 	if err != nil {
 		return util.Row{}, err
 	}
-	// statement, err := sqldb.db.Prepare(statementString)
-	// if err != nil {
-	// 	return util.Row{}, err
-	// }
-	// sqldb.logger.Debug("Select query prepared")
-	// rows, err := statement.Query(row.Uuid)
-	// if err != nil {
-	// 	return util.Row{}, err
-	// }
 	sqldb.logger.Debug("Insert query executed")
 	for rows.Next() {
 		err := rows.Scan(&ret.Uuid, &ret.FileName)
@@ -140,7 +174,7 @@ func (sqldb *SqlDB) ListAllPaged(limit uint, offset uint) ([]util.Row, error) {
 	ret := make([]util.Row, 0)
 	var tempUuid, tempFileName string
 
-	statementString := "SELECT * FROM " + sqldb.table + " LIMIT $1 OFFSET $2;"
+	statementString := "SELECT * FROM " + sqldb.GetTableFromLabel("metadata") + " LIMIT $1 OFFSET $2;"
 	sqldb.logger.Debug(statementString)
 	rows, err := sqldb.Query(statementString, limit, offset)
 	if err != nil {
@@ -166,4 +200,16 @@ func (sqldb *SqlDB) ListAllPaged(limit uint, offset uint) ([]util.Row, error) {
 
 func (sqldb *SqlDB) Close() error {
 	return sqldb.db.Close()
+}
+
+// Miscellanea
+func (sqldb *SqlDB) GetTableFromLabel(label string) string {
+
+	var tableName string
+	for _, table := range sqldb.tables {
+		if table.labels["content"] == "metadata" {
+			tableName = table.name
+		}
+	}
+	return tableName
 }
