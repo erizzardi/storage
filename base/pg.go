@@ -171,6 +171,7 @@ func (sqldb *SqlDB) RetrieveMetadata(row util.Row) (util.Row, error) {
 }
 
 func (sqldb *SqlDB) ListAllPaged(limit uint, offset uint) ([]util.Row, error) {
+
 	ret := make([]util.Row, 0)
 	var tempUuid, tempFileName string
 
@@ -202,7 +203,9 @@ func (sqldb *SqlDB) Close() error {
 	return sqldb.db.Close()
 }
 
+//============
 // Miscellanea
+//============
 func (sqldb *SqlDB) GetTableFromLabel(label string) string {
 
 	var tableName string

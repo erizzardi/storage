@@ -50,14 +50,19 @@ func TestInsertDelete(t *testing.T) {
 	uuid := uuid.New().String()
 	fileName := "testFile"
 
+	//----------------------------
 	// insert (uuid, testFile) row
+	//----------------------------
 	if err := db.InsertMetadata(util.Row{
 		Uuid:     uuid,
 		FileName: fileName,
 	}); err != nil {
 		testLogger.Error("Cannot insert row: " + err.Error())
 	}
+
+	//--------------------------
 	// check if row was inserted
+	//--------------------------
 	statementString := fmt.Sprintf("SELECT * FROM meta WHERE filename='%s' AND uuid='%s';", fileName, uuid)
 	rows, err := db.Query(statementString)
 	if err != nil {
@@ -75,6 +80,9 @@ func TestInsertDelete(t *testing.T) {
 		testLogger.Error("Error: " + err.Error())
 	}
 
+	//-----------
+	// assertions
+	//-----------
 	if ret.Uuid != uuid {
 		t.Errorf("Uuid not matching:\nSource: %s\nRead:%s", uuid, ret.Uuid)
 	}
@@ -85,14 +93,17 @@ func TestInsertDelete(t *testing.T) {
 		t.Error("There should be exactly 1 row in the table.")
 	}
 
+	//-----------
 	// delete row
+	//-----------
 	statementString = fmt.Sprintf("DELETE FROM meta WHERE filename='%s';", fileName)
 	if _, err := db.Exec(statementString); err != nil {
 		t.Error("Error deleting the row: " + err.Error())
 	}
 
+	//-------------------------------
 	// check if the row doesn't exist
-
+	//-------------------------------
 	ret = util.Row{} // restore ret value to default
 
 	statementString = fmt.Sprintf("SELECT * FROM meta WHERE filename='%s' AND uuid='%s';", fileName, uuid)
