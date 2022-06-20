@@ -52,6 +52,9 @@ func MakeNotFoundEndpoint() endpoint.Endpoint {
 func MakeListFilesEndpoint(svc storage.Service, storageFolder string) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(ListFilesRequest)
+		if req.Err != nil {
+			return WriteFileResponse{400, "Could not read body: " + req.Err.Error(), ""}, nil
+		}
 		files, err := svc.ListFiles(ctx, req.Limit, req.Offset)
 		if err != nil {
 			er := err.(*util.ResponseError) // TODO - is it necessary? investigate a more elegant solution

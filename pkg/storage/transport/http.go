@@ -78,9 +78,11 @@ func decodeHTTPNotFoundRequest(ctx context.Context, r *http.Request) (interface{
 
 func decodeHTTPListFilesRequest(ctx context.Context, r *http.Request) (interface{}, error) {
 	req := &endpoints.ListFilesRequest{}
-	err := json.NewDecoder(r.Body).Decode(req)
+	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+		req.Err = err
+	}
 
-	return *req, err
+	return *req, nil
 }
 
 func decodeHTTPWriteFileRequest(ctx context.Context, r *http.Request) (interface{}, error) {
