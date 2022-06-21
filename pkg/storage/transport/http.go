@@ -135,16 +135,20 @@ func decodeHTTPDeleteFileRequest(ctx context.Context, r *http.Request) (interfac
 
 func decodeHTTPAddBucketRequest(ctx context.Context, r *http.Request) (interface{}, error) {
 	req := &endpoints.AddBucketRequest{}
-	err := json.NewDecoder(r.Body).Decode(req)
+	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+		req.Err = err
+	}
 
-	return *req, err
+	return *req, nil
 }
 
 func decodeHTTPLogLevelRequest(ctx context.Context, r *http.Request) (interface{}, error) {
 	req := &endpoints.LogLevelRequest{}
-	err := json.NewDecoder(r.Body).Decode(req)
+	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+		req.Err = err
+	}
 
-	return *req, err
+	return *req, nil
 }
 
 //==================

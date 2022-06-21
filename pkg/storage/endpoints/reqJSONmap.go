@@ -27,26 +27,26 @@ type WriteFileRequest struct {
 	File     io.Reader
 	Metadata util.Metadata
 	Headers  http.Header
-	Err      error `json-=-`
+	Err      error `json:"-"`
 }
 
 type GetFileRequest struct {
 	Uuid    string
 	Headers http.Header
-	Err     error `json-=-`
+	Err     error `json:"-"`
 }
 
 type DeleteFileRequest struct {
 	Uuid    string
 	Headers http.Header
-	Err     error `json-=-`
+	Err     error `json:"-"`
 }
 
 type AddBucketRequest struct {
 	Name       string `json:"name"`
 	Versioning bool   `json:"versioning"`
 	Headers    http.Header
-	Err        error `json-=-`
+	Err        error `json:"-"`
 	// TODO - LifecyclePolicy util.LifecyclePolicy
 }
 
@@ -54,14 +54,14 @@ type LogLevelRequest struct {
 	Layer   string `json:"layer"`
 	Level   string `json:"level"`
 	Headers http.Header
-	Err     error `json-=-`
+	Err     error `json:"-"`
 }
 
 type ListFilesRequest struct {
 	Limit   uint `json:"limit"`
 	Offset  uint `json:"offset"`
 	Headers http.Header
-	Err     error `json-=-`
+	Err     error `json:"-"`
 }
 
 //==========
