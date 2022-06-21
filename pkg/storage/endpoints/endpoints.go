@@ -69,7 +69,8 @@ func MakeListFilesEndpoint(svc storage.Service, storageFolder string, logger *ut
 			return WriteFileResponse{400, "Could not read body: " + req.Err.Error(), ""}, nil
 		}
 		files, err := svc.ListFiles(ctx, req.Limit, req.Offset)
-		if errors.Is(err, util.InternalServerError{}) {
+		// if error is 500
+		if util.ErrorIs(err, util.InternalServerError{}) {
 			return ListFilesResponse{Code: 500, Message: err.Error(), Files: nil}, nil
 		}
 		return ListFilesResponse{Code: 200, Message: "Ok", Files: files}, nil
@@ -77,13 +78,20 @@ func MakeListFilesEndpoint(svc storage.Service, storageFolder string, logger *ut
 }
 
 func MakeWriteFileEndpoint(svc storage.Service, storageFolder string, logger *util.Logger) endpoint.Endpoint {
-	//possibly cluster all config variables in one struct and pass that to the WriteFile method
+
+	// TODO - possibly cluster all config variables in one struct and pass that to the WriteFile method
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(WriteFileRequest)
 		uuid, err := svc.WriteFile(ctx, req.File, req.Metadata, storageFolder)
-		if err != nil {
-			er := err.(*util.ResponseError) // TODO - is it necessary? investigate a more elegant solution
-			return WriteFileResponse{er.StatusCode, err.Error(), ""}, nil
+		if util.ErrorIs(err, util.BadRequestError{}) {
+			// if error is 400
+			return WriteFileResponse{400, err.Error(), ""}, nil
+		} else if util.ErrorIs(err, util.ConflictError{}) {
+			// if error is 409
+			return WriteFileResponse{409, err.Error(), ""}, nil
+		} else if util.ErrorIs(err, util.InternalServerError{}) {
+			// if error is 500
+			return WriteFileResponse{500, err.Error(), ""}, nil
 		}
 		return WriteFileResponse{201, "File created", uuid}, nil
 	}
@@ -93,9 +101,9 @@ func MakeGetFileEndpoint(svc storage.Service, storageFolder string, logger *util
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(GetFileRequest)
 		file, err := svc.GetFile(ctx, req.Uuid, storageFolder)
-		if err != nil {
-			er := err.(*util.ResponseError) // TODO - as above
-			return GetFileResponse{er.StatusCode, err.Error(), nil}, nil
+		if util.ErrorIs(err, util.InternalServerError{}) {
+			// if error is 500
+			return WriteFileResponse{500, err.Error(), ""}, nil
 		}
 		return GetFileResponse{200, "File retrieved", file}, nil
 	}
@@ -121,18 +129,22 @@ func MakeAddBucketEndpoint(svc storage.Service, storageFolder string, logger *ut
 }
 
 func MakeLogLevelEndpoint(svc storage.Service, storageFolder string, logger *util.Logger) endpoint.Endpoint {
+
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(LogLevelRequest)
+		if req.Err != nil {
+			logger.Error("Error: " + req.Err.Error())
+			return LogLevelResponse{Code: 400, Message: req.Err.Error()}, nil
+		}
 		err := svc.SetLogLevel(ctx, req.Layer, req.Level)
 		if util.ErrorIs(err, util.BadRequestError{}) && err != nil {
 			logger.Error("Error: " + err.Error())
 			return LogLevelResponse{Code: 400, Message: err.Error()}, nil
 		}
-		// if errors.Is(err, util.BadRequestError{}) { // <- DOES NOT WORK, of course
-		// 	logger.Error("Error: " + err.Error())
-		// 	return util.ResponseError{StatusCode: 400, Message: err.Error()}, nil
-		// }
-		// errors.Is()
+		if errors.Is(err, util.BadRequestError{}) {
+			logger.Error("Error: " + err.Error())
+			return LogLevelResponse{Code: 400, Message: err.Error()}, nil
+		}
 		return LogLevelResponse{200, "Logging level for layer " + req.Layer + " changed to " + req.Level}, nil
 	}
 }

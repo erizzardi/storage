@@ -24,15 +24,16 @@ Errors should NEVER be returned with go-kit regular funcions. They should be emb
 6. <del>improve response writing - headers are fucked up</del>
 7. <del>remove default values and have them read from secrets as env variables</del>
 8. APIs to manipulate files by name
-9. object versioning
-10. error management - have service methods return custom error type (ResponseError), so to avoid type assertions
-11. improve read/write of large files - buffered IO operations to cap memory? write to binary?
-12. implement caching - check varnish compatibility
-13. improve container compatibility
-14. object lifecycle policies
-15. implement buckets
-16. check kubernetes compatibility
-17. helm chart
-18. authentication and permissions
-19. ad methods that prepare every possible query
-20. implement DB interface for other kinds of DBs (ideally: MySQL, CockroachDB, Couchbase, Cassandra)
+9. DB middleware to implement retry and timeouts
+10. object versioning
+11. error management - have service methods return custom error type (ResponseError), so to avoid type assertions
+12. improve read/write of large files - buffered IO operations to cap memory? write to binary?
+13. implement caching - check varnish compatibility
+14. improve container compatibility
+15. object lifecycle policies
+16. implement buckets
+17. check kubernetes compatibility
+18. helm chart
+19. authentication and permissions
+20. ad methods that prepare every possible query
+21. implement DB interface for other kinds of relational DBs (ideally: MySQL, CockroachDB)

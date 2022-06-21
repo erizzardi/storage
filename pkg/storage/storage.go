@@ -34,8 +34,7 @@ func NewService(db base.DB, logger *util.Logger, layerLoggersMap map[string]*uti
 // This just returns the type of error.
 //===================================================================================
 
-//
-// ListFiles list metadata, paged
+// ListFiles list metadata, paged.
 // returns 200, 500
 func (ss *storageService) ListFiles(ctx context.Context, limit uint, offset uint) ([]util.Row, error) {
 
@@ -48,11 +47,18 @@ func (ss *storageService) ListFiles(ctx context.Context, limit uint, offset uint
 	return rows, nil
 }
 
+// WriteFile writes a file to disk, and updates metadata in DB.
+// Returns 200, 400, 409, 500
 func (ss *storageService) WriteFile(ctx context.Context, file io.Reader, metadata util.Metadata, storageFolder string) (string, error) {
 	ss.logger.Debug("Method WriteFile invoked.")
 
 	uuid := uuid.New().String()
 	fileName := filepath.Join(storageFolder, uuid)
+
+	if file == nil {
+		ss.logger.Error("Error: no file in request")
+		return "", util.BadRequestError{Message: "no file in request"}
+	}
 
 	// check if file exists
 	if _, err := os.Stat(fileName); errors.Is(err, os.ErrNotExist) {
@@ -86,12 +92,14 @@ func (ss *storageService) WriteFile(ctx context.Context, file io.Reader, metadat
 		ss.logger.Info("File " + uuid + " created successfully")
 
 	} else {
-		ss.logger.Error("Error: file already exists")
+		ss.logger.Error("file already exists")
 		return "", util.ConflictError{}
 	}
 	return uuid, nil
 }
 
+// GetFile returns the metadata of a file from its Uuid.
+// Returns 200, 404, 500
 func (ss *storageService) GetFile(ctx context.Context, uuid string, storageFolder string) ([]byte, error) {
 	ss.logger.Debug("Method GetFile invoked.")
 
@@ -99,27 +107,29 @@ func (ss *storageService) GetFile(ctx context.Context, uuid string, storageFolde
 	row, err := ss.db.RetrieveMetadata(util.Row{Uuid: uuid, FileName: ""})
 	if err != nil {
 		ss.logger.Error("Error: " + err.Error())
-		return nil, util.InternalServerError{}
+		return nil, util.InternalServerError{Message: err.Error()}
 	}
 	if row == (util.Row{}) {
-		ss.logger.Error("Error: file not found")
-		return nil, util.NotFoundError{}
+		ss.logger.Errorf("Error: file %s not found", uuid)
+		return nil, util.NotFoundError{Message: "file not found"}
 	}
 
 	fileName := filepath.Join(storageFolder, uuid)
 	if _, err := os.Stat(fileName); errors.Is(err, os.ErrNotExist) {
 		ss.logger.Error("Error: " + err.Error())
-		return nil, util.NotFoundError{}
+		return nil, util.NotFoundError{Message: err.Error()}
 	}
 	file, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		ss.logger.Error("Error: " + err.Error())
-		return nil, util.InternalServerError{}
+		return nil, util.InternalServerError{Message: err.Error()}
 	}
 	ss.logger.Info("File " + uuid + " retrieved successfully")
 	return file, nil
 }
 
+// DeleteFile deletes a file from disk by its Uuid.
+// Returns 200, 404, 500
 func (ss *storageService) DeleteFile(ctx context.Context, uuid string, storageFolder string) error {
 	ss.logger.Debug("Method DeleteFile invoked.")
 	fileName := filepath.Join(storageFolder, uuid)
