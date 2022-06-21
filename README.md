@@ -19,17 +19,17 @@ Errors should NEVER be returned with go-kit regular funcions. They should be emb
 1. UNIT TESTS
 2. IMPROVE (write :p) DOCUMENTATION
 3. <del>paged API to list objects,</del>
-4. API to set loglevel at runtime
+4. <del>API to set loglevel at runtime</del>
 5. <del>Endpoints layer logging</del>
 6. <del>improve response writing - headers are fucked up</del>
 7. <del>remove default values and have them read from secrets as env variables</del>
 8. APIs to manipulate files by name
-9. error management - have service methods return custom error type (ResponseError), so to avoid type assertions
-10. improve read/write of large files - buffered IO operations to cap memory? write to binary?
-11. implement caching - check varnish compatibility
-12. improve container compatibility
-13. object lifecycle policies
-14. object versioning
+9. object versioning
+10. error management - have service methods return custom error type (ResponseError), so to avoid type assertions
+11. improve read/write of large files - buffered IO operations to cap memory? write to binary?
+12. implement caching - check varnish compatibility
+13. improve container compatibility
+14. object lifecycle policies
 15. implement buckets
 16. check kubernetes compatibility
 17. helm chart

@@ -140,10 +140,12 @@ func (ss *storageService) SetLogLevel(ctx context.Context, layer string, level s
 	ss.logger.Debug("Method SetLogLevel invoked")
 	logLevel, err := util.LogLevelMapping(level)
 	if err != nil {
-		return util.BadRequestError{}
+		return util.BadRequestError{Message: err.Error()}
 	}
-	if layer == "service" {
-		ss.logger.SetLevel(logLevel)
+	if logger, ok := ss.layerLoggersMap[layer]; ok {
+		logger.SetLevel(logLevel)
+	} else {
+		return util.BadRequestError{Message: "invalid layer: " + layer}
 	}
 	return nil
 }

@@ -114,7 +114,13 @@ func main() {
 	//----------------------------------
 	mainLogger.Debugf("Config variables: %+v\n", config) // TODO
 
-	var service = storage.NewService(db, serviceLogger, map[string]*util.Logger{"transport": transportLogger, "database": databaseLogger})
+	// All the loggers are passed to the service, so the logging level can be set ar runtime
+	var service = storage.NewService(db, serviceLogger, map[string]*util.Logger{
+		"main":      mainLogger,
+		"transport": transportLogger,
+		"endpoints": endpointsLogger,
+		"database":  databaseLogger,
+	})
 	var endpointSet = endpoints.NewEndpointSet(service, config, endpointsLogger)
 	var httpHandler = storage.TransportMiddleware{Logger: transportLogger, Next: transport.NewHTTPHandler(endpointSet)}
 

@@ -40,7 +40,6 @@ func NewEndpointSet(svc storage.Service, config *util.Config, logger *util.Logge
 //---------------------------------------------------------------------------------
 // NEVER return errors via endpoint.Endpoint. It fucks up all the response encoding
 //=================================================================================
-
 func MakeHealtzEndpoint(logger *util.Logger) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		return HealtzResponse{Message: "Alive!", Code: 200}, nil
@@ -125,10 +124,15 @@ func MakeLogLevelEndpoint(svc storage.Service, storageFolder string, logger *uti
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(LogLevelRequest)
 		err := svc.SetLogLevel(ctx, req.Layer, req.Level)
-		if err != nil {
-			er := err.(*util.ResponseError)
-			return LogLevelResponse{er.StatusCode, err.Error()}, nil
+		if util.ErrorIs(err, util.BadRequestError{}) && err != nil {
+			logger.Error("Error: " + err.Error())
+			return LogLevelResponse{Code: 400, Message: err.Error()}, nil
 		}
+		// if errors.Is(err, util.BadRequestError{}) { // <- DOES NOT WORK, of course
+		// 	logger.Error("Error: " + err.Error())
+		// 	return util.ResponseError{StatusCode: 400, Message: err.Error()}, nil
+		// }
+		// errors.Is()
 		return LogLevelResponse{200, "Logging level for layer " + req.Layer + " changed to " + req.Level}, nil
 	}
 }
