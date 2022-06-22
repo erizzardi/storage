@@ -145,12 +145,14 @@ func (sqldb *SqlDB) InsertMetadata(row util.Row) error {
 	return nil
 }
 
-func (sqldb *SqlDB) RetrieveMetadata(uuid string) (util.Row, error) {
+func (sqldb *SqlDB) RetrieveMetadata(key, value string) (util.Row, error) {
+
 	var ret util.Row
 
-	statementString := "SELECT * FROM " + sqldb.GetTableFromLabel("metadata") + " WHERE uuid = $1;"
+	// POSSIBLE SQL INJECTION
+	statementString := "SELECT * FROM " + sqldb.GetTableFromLabel("metadata") + " WHERE " + key + " = $1;"
 	sqldb.logger.Debug(statementString)
-	rows, err := sqldb.Query(statementString, uuid)
+	rows, err := sqldb.Query(statementString, value)
 	if err != nil {
 		return util.Row{}, err
 	}
@@ -171,11 +173,12 @@ func (sqldb *SqlDB) RetrieveMetadata(uuid string) (util.Row, error) {
 	return ret, nil
 }
 
-func (sqldb *SqlDB) DeleteMetadata(uuid string) error {
+func (sqldb *SqlDB) DeleteMetadata(key, value string) error {
 
-	statementString := "DELETE FROM " + sqldb.GetTableFromLabel("metadata") + " WHERE uuid = $1"
+	// POSSIBLE SQL INJECTION
+	statementString := "DELETE FROM " + sqldb.GetTableFromLabel("metadata") + " WHERE " + key + " = $1;"
 	sqldb.logger.Debug(statementString)
-	res, err := sqldb.Exec(statementString, uuid)
+	res, err := sqldb.Exec(statementString, value)
 	if err != nil {
 		return err
 	}
@@ -186,8 +189,8 @@ func (sqldb *SqlDB) DeleteMetadata(uuid string) error {
 		sqldb.logger.Errorf("DELETE operation affected %d lines.", rowCnt)
 		return util.InternalServerError{Message: fmt.Sprintf("DELETE operation affected %d lines.", rowCnt)}
 	} else if rowCnt == 0 {
-		sqldb.logger.Errorf("Error: file %s non existing.", uuid)
-		return util.BadRequestError{Message: ("file " + uuid + "does not exist.")}
+		sqldb.logger.Errorf("Error: file %s non existing.", value)
+		return util.BadRequestError{Message: ("file " + value + "does not exist.")}
 	}
 
 	return nil

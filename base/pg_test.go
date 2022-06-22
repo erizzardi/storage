@@ -65,7 +65,7 @@ func TestInsertRetrieveDelete(t *testing.T) {
 	//--------------------------------------
 	// check if row exists retrieve metadata
 	//--------------------------------------
-	ret, err := db.RetrieveMetadata(uuid)
+	ret, err := db.RetrieveMetadata("uuid", uuid)
 	if err != nil {
 		t.Error("Cannot insert row: " + err.Error())
 	}
@@ -87,14 +87,14 @@ func TestInsertRetrieveDelete(t *testing.T) {
 	// if _, err := db.Exec(statementString); err != nil {
 	// 	t.Error("Error deleting the row: " + err.Error())
 	// }
-	if err = db.DeleteMetadata(uuid); err != nil {
+	if err = db.DeleteMetadata("uuid", uuid); err != nil {
 		t.Error(err.Error())
 	}
 
 	//-------------------------------
 	// check if the row doesn't exist
 	//-------------------------------
-	ret, err = db.RetrieveMetadata(uuid)
+	ret, err = db.RetrieveMetadata("uuid", uuid)
 	if err != nil {
 		t.Error("Cannot insert row: " + err.Error())
 	}
@@ -116,7 +116,7 @@ func TestDeleteNonexisting(t *testing.T) {
 	//-----------
 	// delete row
 	//-----------
-	if err := db.DeleteMetadata(uuid); err == nil {
+	if err := db.DeleteMetadata("uuid", uuid); err == nil {
 		t.Error("Should return error")
 	} else if util.ErrorIs(err, util.BadRequestError{}) == false {
 		t.Errorf("Error type should be %T", util.BadRequestError{})
