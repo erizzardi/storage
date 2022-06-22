@@ -108,5 +108,5 @@ type LogLevelResponse struct {
 type ListFilesResponse struct {
 	Code    int        `json:"code"`
 	Message string     `json:"message"`
-	Files   []util.Row `json:"files"`
+	Files   []util.Row `json:"files,omitempty"`
 }

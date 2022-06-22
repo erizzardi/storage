@@ -151,7 +151,8 @@ func (sqldb *SqlDB) RetrieveMetadata(key, value string) (util.Row, error) {
 
 	// POSSIBLE SQL INJECTION
 	statementString := "SELECT * FROM " + sqldb.GetTableFromLabel("metadata") + " WHERE " + key + " = $1;"
-	sqldb.logger.Debug(statementString)
+	// sqldb.logger.Debug(statementString)
+
 	rows, err := sqldb.Query(statementString, value)
 	if err != nil {
 		return util.Row{}, err
@@ -169,6 +170,11 @@ func (sqldb *SqlDB) RetrieveMetadata(key, value string) (util.Row, error) {
 		return util.Row{}, err
 	}
 	sqldb.logger.Debug("Row scanning ended")
+
+	// Checks for empty response
+	if (ret == util.Row{}) {
+		return ret, NotFoundError
+	}
 
 	return ret, nil
 }

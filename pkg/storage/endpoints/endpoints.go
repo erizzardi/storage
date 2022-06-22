@@ -63,10 +63,11 @@ func MakeMethodNotAllowedEndpoint(logger *util.Logger) endpoint.Endpoint {
 }
 
 func MakeListFilesEndpoint(svc storage.Service, storageFolder string, logger *util.Logger) endpoint.Endpoint {
+
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(ListFilesRequest)
 		if req.Err != nil {
-			return WriteFileResponse{400, "Could not read body: " + req.Err.Error(), ""}, nil
+			return ListFilesResponse{Code: 400, Message: "Could not read body: " + req.Err.Error(), Files: []util.Row{}}, nil
 		}
 		files, err := svc.ListFiles(ctx, req.Limit, req.Offset)
 		// if error is 500
@@ -85,15 +86,15 @@ func MakeWriteFileEndpoint(svc storage.Service, storageFolder string, logger *ut
 		uuid, err := svc.WriteFile(ctx, req.File, req.Metadata, storageFolder)
 		if util.ErrorIs(err, util.BadRequestError{}) {
 			// if error is 400
-			return WriteFileResponse{400, err.Error(), ""}, nil
+			return WriteFileResponse{Code: 400, Message: err.Error(), Uuid: ""}, nil
 		} else if util.ErrorIs(err, util.ConflictError{}) {
 			// if error is 409
-			return WriteFileResponse{409, err.Error(), ""}, nil
+			return WriteFileResponse{Code: 409, Message: err.Error(), Uuid: ""}, nil
 		} else if util.ErrorIs(err, util.InternalServerError{}) {
 			// if error is 500
-			return WriteFileResponse{500, err.Error(), ""}, nil
+			return WriteFileResponse{Code: 500, Message: err.Error(), Uuid: ""}, nil
 		}
-		return WriteFileResponse{201, "File created", uuid}, nil
+		return WriteFileResponse{Code: 201, Message: "File created", Uuid: uuid}, nil
 	}
 }
 
@@ -103,7 +104,7 @@ func MakeGetFileEndpoint(svc storage.Service, storageFolder string, logger *util
 		file, err := svc.GetFile(ctx, req.Uuid, storageFolder)
 		if util.ErrorIs(err, util.InternalServerError{}) {
 			// if error is 500
-			return WriteFileResponse{500, err.Error(), ""}, nil
+			return GetFileResponse{Code: 500, Message: err.Error(), File: nil}, nil
 		}
 		return GetFileResponse{200, "File retrieved", file}, nil
 	}

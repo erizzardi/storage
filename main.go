@@ -48,12 +48,13 @@ var (
 	databaseLogLevel  = util.EnvString("STORAGE_DB_LOG_LEVEL", defaultLogLevel)
 	storageFolder     = util.EnvString("STORAGE_FOLDER", defaultStorageFolder)
 	dbDriver          = util.EnvString("STORAGE_DB_DRIVER", defaultDBDriver)
+
 	// dbTable           = util.EnvString("STORAGE_DB_TABLE", defaultDBTable)
 
 	// variables without default (secrets)
 	dbUser     = os.Getenv("STORAGE_DB_USER")
 	dbPassword = os.Getenv("STORAGE_DB_PASSWORD")
-	dbDatabase = os.Getenv("STORAGE_DB_DB")
+	dbDatabase = os.Getenv("STORAGE_DB_DATABASE")
 	dbHost     = os.Getenv("STORAGE_DB_HOST")
 	dbPort     = os.Getenv("STORAGE_DB_PORT")
 )

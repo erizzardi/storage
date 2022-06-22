@@ -62,9 +62,9 @@ func TestInsertRetrieveDelete(t *testing.T) {
 		t.Error("Cannot insert row: " + err.Error())
 	}
 
-	//--------------------------------------
-	// check if row exists retrieve metadata
-	//--------------------------------------
+	//----------------------------------------
+	// check if row exists - retrieve metadata
+	//----------------------------------------
 	ret, err := db.RetrieveMetadata("uuid", uuid)
 	if err != nil {
 		t.Error("Cannot insert row: " + err.Error())

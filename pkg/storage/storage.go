@@ -60,8 +60,9 @@ func (ss *storageService) WriteFile(ctx context.Context, file io.Reader, metadat
 		return "", util.BadRequestError{Message: "no file in request"}
 	}
 
-	// check if file exists
-	if _, err := os.Stat(fileName); errors.Is(err, os.ErrNotExist) {
+	// Check if file exists by querying the DB by fileName.
+	// A filesystem check should not be necessary, since UUIDs are unique.
+	if _, err := ss.db.RetrieveMetadata("filename", metadata.Name); errors.Is(err, base.NotFoundError) {
 		ss.logger.Debug("Creating file " + fileName + "...")
 		newFile, err := os.Create(fileName)
 		if err != nil {
@@ -80,7 +81,7 @@ func (ss *storageService) WriteFile(ctx context.Context, file io.Reader, metadat
 
 		ss.logger.Debug(uuid, metadata.Name)
 
-		// write metadata to db
+		// Write metadata to db
 		err = ss.db.InsertMetadata(util.Row{
 			Uuid:     uuid,
 			FileName: metadata.Name,
@@ -91,11 +92,11 @@ func (ss *storageService) WriteFile(ctx context.Context, file io.Reader, metadat
 		}
 
 		ss.logger.Info("File " + uuid + " created successfully")
-
 	} else {
 		ss.logger.Error("file already exists")
-		return "", util.ConflictError{}
+		return "", util.ConflictError{Message: "file already exists"}
 	}
+
 	return uuid, nil
 }
 
