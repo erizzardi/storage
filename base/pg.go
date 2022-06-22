@@ -2,6 +2,7 @@ package base
 
 import (
 	"database/sql"
+	"fmt"
 
 	"github.com/erizzardi/storage/util"
 	_ "github.com/lib/pq"
@@ -110,7 +111,7 @@ func (sqldb *SqlDB) Init() error {
 	return nil
 }
 
-// TearDown() drops all the tables created by Init(). To be used in tests!
+// tearDown() drops all the tables created by Init(). To be used in tests! Thus, unexported.
 func (sqldb *SqlDB) tearDown() error {
 
 	for _, table := range sqldb.tables {
@@ -139,17 +140,17 @@ func (sqldb *SqlDB) InsertMetadata(row util.Row) error {
 	if err != nil {
 		return err
 	}
-	sqldb.logger.Debugf("Created %d rows", rowCnt)
+	sqldb.logger.Debugf("Created %d row/s", rowCnt)
 
 	return nil
 }
 
-func (sqldb *SqlDB) RetrieveMetadata(row util.Row) (util.Row, error) {
+func (sqldb *SqlDB) RetrieveMetadata(uuid string) (util.Row, error) {
 	var ret util.Row
 
 	statementString := "SELECT * FROM " + sqldb.GetTableFromLabel("metadata") + " WHERE uuid = $1;"
 	sqldb.logger.Debug(statementString)
-	rows, err := sqldb.Query(statementString, row.Uuid)
+	rows, err := sqldb.Query(statementString, uuid)
 	if err != nil {
 		return util.Row{}, err
 	}
@@ -168,6 +169,28 @@ func (sqldb *SqlDB) RetrieveMetadata(row util.Row) (util.Row, error) {
 	sqldb.logger.Debug("Row scanning ended")
 
 	return ret, nil
+}
+
+func (sqldb *SqlDB) DeleteMetadata(uuid string) error {
+
+	statementString := "DELETE FROM " + sqldb.GetTableFromLabel("metadata") + " WHERE uuid = $1"
+	sqldb.logger.Debug(statementString)
+	res, err := sqldb.Exec(statementString, uuid)
+	if err != nil {
+		return err
+	}
+
+	if rowCnt, err := res.RowsAffected(); err != nil {
+		return util.InternalServerError{Message: err.Error()}
+	} else if rowCnt > 1 {
+		sqldb.logger.Errorf("DELETE operation affected %d lines.", rowCnt)
+		return util.InternalServerError{Message: fmt.Sprintf("DELETE operation affected %d lines.", rowCnt)}
+	} else if rowCnt == 0 {
+		sqldb.logger.Errorf("Error: file %s non existing.", uuid)
+		return util.BadRequestError{Message: ("file " + uuid + "does not exist.")}
+	}
+
+	return nil
 }
 
 func (sqldb *SqlDB) ListAllPaged(limit uint, offset uint) ([]util.Row, error) {

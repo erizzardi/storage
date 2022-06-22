@@ -1,7 +1,6 @@
 package base
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
@@ -42,10 +41,13 @@ func TestMain(m *testing.M) {
 	os.Exit(exitVal)
 }
 
-func TestInsertDelete(t *testing.T) {
+//
+// This test inserts, retrieves and deletes a row of metadata.
+// Pass if no errors.
+func TestInsertRetrieveDelete(t *testing.T) {
 
 	var ret util.Row
-	count := 0
+	// count := 0
 
 	uuid := uuid.New().String()
 	fileName := "testFile"
@@ -57,27 +59,15 @@ func TestInsertDelete(t *testing.T) {
 		Uuid:     uuid,
 		FileName: fileName,
 	}); err != nil {
-		testLogger.Error("Cannot insert row: " + err.Error())
+		t.Error("Cannot insert row: " + err.Error())
 	}
 
-	//--------------------------
-	// check if row was inserted
-	//--------------------------
-	statementString := fmt.Sprintf("SELECT * FROM meta WHERE filename='%s' AND uuid='%s';", fileName, uuid)
-	rows, err := db.Query(statementString)
+	//--------------------------------------
+	// check if row exists retrieve metadata
+	//--------------------------------------
+	ret, err := db.RetrieveMetadata(uuid)
 	if err != nil {
-		testLogger.Error("Cannot query db: " + err.Error())
-	}
-	for rows.Next() {
-		count++
-		err := rows.Scan(&ret.Uuid, &ret.FileName)
-		if err != nil {
-			testLogger.Error("Cannot scan row: " + err.Error())
-		}
-	}
-	err = rows.Err()
-	if err != nil {
-		testLogger.Error("Error: " + err.Error())
+		t.Error("Cannot insert row: " + err.Error())
 	}
 
 	//-----------
@@ -89,42 +79,46 @@ func TestInsertDelete(t *testing.T) {
 	if ret.FileName != fileName {
 		t.Errorf("fileName not matching:\nSource: %s\nRead:%s", fileName, ret.FileName)
 	}
-	if count != 1 {
-		t.Error("There should be exactly 1 row in the table.")
-	}
 
 	//-----------
 	// delete row
 	//-----------
-	statementString = fmt.Sprintf("DELETE FROM meta WHERE filename='%s';", fileName)
-	if _, err := db.Exec(statementString); err != nil {
-		t.Error("Error deleting the row: " + err.Error())
+	// statementString := fmt.Sprintf("DELETE FROM meta WHERE filename='%s';", fileName)
+	// if _, err := db.Exec(statementString); err != nil {
+	// 	t.Error("Error deleting the row: " + err.Error())
+	// }
+	if err = db.DeleteMetadata(uuid); err != nil {
+		t.Error(err.Error())
 	}
 
 	//-------------------------------
 	// check if the row doesn't exist
 	//-------------------------------
-	ret = util.Row{} // restore ret value to default
-
-	statementString = fmt.Sprintf("SELECT * FROM meta WHERE filename='%s' AND uuid='%s';", fileName, uuid)
-	rows, err = db.Query(statementString)
+	ret, err = db.RetrieveMetadata(uuid)
 	if err != nil {
-		testLogger.Error("Cannot query db: " + err.Error())
-	}
-	for rows.Next() {
-		count++
-		err := rows.Scan(&ret.Uuid, &ret.FileName)
-		if err != nil {
-			testLogger.Error("Cannot scan row: " + err.Error())
-		}
-	}
-	err = rows.Err()
-	if err != nil {
-		testLogger.Error("Error: " + err.Error())
+		t.Error("Cannot insert row: " + err.Error())
 	}
 
 	if (ret != util.Row{}) {
 		t.Error("Found Row! Data not deleted correctly.")
 	}
+}
 
+//
+// This test deletes a non-existing row of metadata.
+// Pass if errors
+func TestDeleteNonexisting(t *testing.T) {
+
+	// Every uuid is unique by construction
+	// thus creating a new one is sufficient
+	uuid := uuid.New().String()
+
+	//-----------
+	// delete row
+	//-----------
+	if err := db.DeleteMetadata(uuid); err == nil {
+		t.Error("Should return error")
+	} else if util.ErrorIs(err, util.BadRequestError{}) == false {
+		t.Errorf("Error type should be %T", util.BadRequestError{})
+	}
 }

@@ -39,7 +39,11 @@ type DB interface {
 	//
 	//
 	// Queries the metadata database for selected row. Throws an error if entry doesn't exist
-	RetrieveMetadata(row util.Row) (util.Row, error)
+	RetrieveMetadata(uuid string) (util.Row, error)
+	//
+	//
+	// Deletes row in database
+	DeleteMetadata(uuid string) error
 	//
 	//
 	// Select * from table, paged

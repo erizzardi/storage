@@ -104,7 +104,7 @@ func (ss *storageService) GetFile(ctx context.Context, uuid string, storageFolde
 	ss.logger.Debug("Method GetFile invoked.")
 
 	// Check db for entry corresponding to file
-	row, err := ss.db.RetrieveMetadata(util.Row{Uuid: uuid, FileName: ""})
+	row, err := ss.db.RetrieveMetadata(uuid)
 	if err != nil {
 		ss.logger.Error("Error: " + err.Error())
 		return nil, util.InternalServerError{Message: err.Error()}
@@ -141,6 +141,10 @@ func (ss *storageService) DeleteFile(ctx context.Context, uuid string, storageFo
 	if err := os.Remove(fileName); err != nil {
 		ss.logger.Error("Error: " + err.Error())
 		return util.InternalServerError{}
+	}
+	if err := ss.db.DeleteMetadata(uuid); err != nil {
+		ss.logger.Error("Error: " + err.Error())
+
 	}
 	ss.logger.Info("File " + fileName + "deleted successfully")
 	return nil
